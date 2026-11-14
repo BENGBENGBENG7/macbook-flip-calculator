@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'macbook-flip-listings-v1';
 const RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD';
 const LISTINGS_URL = './listings.json';
-const SYNC_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const SYNC_INTERVAL_MS = 60 * 60 * 1000;
 let listings = loadListings();
 let cnyToSgd = null;
 let rateDate = '';
