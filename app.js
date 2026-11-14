@@ -7,6 +7,7 @@ let cnyToSgd = null;
 let rateDate = '';
 let rateStatus = 'loading';
 let syncStatus = '正在同步巡查数据…';
+const galleryIndexes = new Map();
 
 const grid = document.querySelector('#listingGrid');
 const dialog = document.querySelector('#listingDialog');
@@ -31,7 +32,7 @@ function calc(item) {
   const purchaseSgd = fx ? (Number(item.priceCny)||0) * fx : NaN;
   const xianyuShippingCny = isXianyu(item.platform) ? 150 : 0;
   const shippingCny = fx ? xianyuShippingCny * fx : NaN;
-  const inspectionCny = isXianyu(item.platform) ? (fx ? 54 * fx : NaN) : 0;
+  const inspectionCny = fx ? 54 * fx : NaN;
   const shippingSgd = Number(item.shippingSgd)||0;
   const repairSgd = Number(item.repairSgd)||0;
   const rate = (Number(item.feePercent)||0)/100;
@@ -59,7 +60,13 @@ function normalizeFeedItem(raw) {
   item.id = listingKey(item);
   item.url = item.url || item.link || item.itemUrl || item.detailUrl || '';
   item.description = item.description || item.title || item.rawDescription || item.name || '未命名商品';
-  item.image = item.image || item.imageUrl || item.picUrl || item.cover || item.coverUrl || '';
+  const rawImages = item.images || item.imageUrls || item.pictures || item.pics || [];
+  const imageList = (Array.isArray(rawImages) ? rawImages : [rawImages])
+    .concat(item.image || item.imageUrl || item.picUrl || item.cover || item.coverUrl || [])
+    .map(image => typeof image === 'string' ? image : (image?.url || image?.src || image?.imageUrl || ''))
+    .map(image => image.trim()).filter(Boolean);
+  item.images = [...new Set(imageList)].slice(0, 10);
+  item.image = item.images[0] || '';
   item.seller = item.seller || item.sellerInfo || item.nickname || item.username || '';
   item.priceCny = Number(item.priceCny ?? item.price ?? item.amount ?? 0);
   item.platform = inferPlatform(item.platform || item.source || item.marketplace || '', item.url);
@@ -98,9 +105,11 @@ async function syncListings() {
     const time = new Intl.DateTimeFormat('zh-SG', {hour:'2-digit',minute:'2-digit'}).format(new Date());
     updateSyncText(`已同步 ${synced.length} 条 · ${time}`);
     render();
+    return true;
   } catch (error) {
     console.error('巡查数据同步失败', error);
     updateSyncText('巡查数据同步失败 · 稍后重试');
+    return false;
   }
 }
 function spec(label, value) { return `<div><div class="spec-label">${label}</div><div class="spec-value">${esc(value || '—')}</div></div>`; }
@@ -110,14 +119,19 @@ function renderCard(item) {
   const decision = rateStatus === 'error' ? 'yellow' : c.decision;
   const sold = safeUrl(item.soldSource);
   const listing = safeUrl(item.url);
-  const image = safeUrl(item.image);
+  const images = (Array.isArray(item.images) ? item.images : [item.image])
+    .map(image => safeUrl(typeof image === 'string' ? image : (image?.url || image?.src || '')))
+    .filter(Boolean).slice(0, 10);
+  const galleryIndex = images.length ? ((galleryIndexes.get(item.id) || 0) % images.length) : 0;
+  const image = images[galleryIndex];
   const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
   const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
   return `<article class="listing-card" data-id="${esc(item.id)}">
-    <div class="card-cover">${image ? `<img src="${esc(image)}" alt="${esc(item.description)}" loading="lazy" onerror="this.remove()">` : '<span class="image-placeholder">MACBOOK PRO</span>'}${listing?`<a class="cover-link" href="${esc(listing)}" target="_blank" rel="noopener" title="打开商品链接">↗</a>`:''}</div>
+    ${image ? `<div class="card-cover"><img src="${esc(image)}" alt="${esc(item.description)} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.remove()">${images.length > 1 ? `<div class="gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
     <div class="card-content">
       <div class="card-heading"><h2>${esc(item.description || '未命名商品')}</h2><span class="decision ${decision}">${labels[decision]}</span></div>
-      <p class="seller-line">卖家：${esc(item.seller || '未填写')}${listing?` · <a href="${esc(listing)}" target="_blank" rel="noopener">查看商品 ↗</a>`:''}</p>
+      <p class="seller-line">卖家：${esc(item.seller || '未填写')}</p>
+      ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
       <div class="profit-panel"><div class="profit-top"><span class="profit-label">预计利润区间</span><strong class="profit-amount ${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div><div class="profit-sub"><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span><span>售价 ${money(c.low)} – ${money(c.high)}</span></div></div>
       <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
       <section class="detail-section"><h3 class="section-title">费用明细 · 新币</h3><div class="cost-list">
@@ -162,7 +176,8 @@ function openForm(item) {
   document.querySelector('#listingId').value=item?.id||'';
   document.querySelector('#dialogTitle').textContent=item?'编辑商品':'添加商品';
   const defaults={platform:'闲鱼',shippingSgd:35,repairSgd:0,feePercent:0,targetProfit:150,sampleCount:1};
-  for (const [key,value] of Object.entries({...defaults,...(item||{})})) {
+  const formItem = item ? {...item, images: (Array.isArray(item.images) ? item.images : (item.image ? [item.image] : [])).slice(0, 10).join('\n')} : {};
+  for (const [key,value] of Object.entries({...defaults,...formItem})) {
     const input=form.elements.namedItem(key);
     if(input) input.value=value ?? '';
   }
@@ -174,9 +189,47 @@ document.querySelector('#closeDialog').addEventListener('click',()=>dialog.close
 document.querySelector('#cancelDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#sortMode').addEventListener('change',render);
 document.querySelector('#refreshRate').addEventListener('click',fetchRate);
+document.querySelector('#syncNow').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  if (button.disabled) return;
+  button.disabled = true;
+  button.classList.add('syncing');
+  button.querySelector('span').textContent = '正在同步…';
+  updateSyncText('正在从 GitHub 获取最新巡查数据…');
+  try {
+    const result = window.macbookFlip?.syncLatestListings
+      ? await window.macbookFlip.syncLatestListings()
+      : {ok: true};
+    if (!result.ok) {
+      const message = /empty|空/i.test(result.message || '')
+        ? 'GitHub 暂无巡查数据，本机数据已保留'
+        : '同步失败，本机数据已保留';
+      updateSyncText(message);
+      toast(message);
+      return;
+    }
+    const synced = await syncListings();
+    toast(synced ? '已完成最新巡查数据同步' : '同步失败，本机数据已保留');
+  } catch (error) {
+    console.error('手动同步失败', error);
+    updateSyncText('同步失败，本机数据已保留');
+    toast('同步失败，本机数据已保留');
+  } finally {
+    button.disabled = false;
+    button.classList.remove('syncing');
+    button.querySelector('span').textContent = '同步巡查';
+  }
+});
 document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus==='error')fetchRate();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
 grid.addEventListener('click',event=>{
+  const gallery=event.target.closest('.gallery-button');
+  if(gallery){
+    const item=listings.find(x=>x.id===gallery.dataset.id);
+    const count=(Array.isArray(item?.images)?item.images:(item?.image?[item.image]:[])).length;
+    if(item&&count>1){galleryIndexes.set(item.id,((galleryIndexes.get(item.id)||0)+Number(gallery.dataset.galleryStep)+count)%count);render();}
+    return;
+  }
   const edit=event.target.closest('.edit-button');
   const remove=event.target.closest('.delete-button');
   if(edit){const item=listings.find(x=>x.id===edit.dataset.id);if(item)openForm(item);}
@@ -185,6 +238,10 @@ grid.addEventListener('click',event=>{
 form.addEventListener('submit',event=>{
   event.preventDefault();
   const data=Object.fromEntries(new FormData(form).entries());
+  const enteredImages=String(data.images||'').split(/\r?\n/).map(url=>url.trim()).filter(Boolean);
+  if(enteredImages.length>10){toast('每台机器最多录入 10 张图片');return;}
+  data.images=[...new Set(enteredImages)]; data.image=data.images[0]||'';
+  delete data.imagesText;
   for(const key of ['priceCny','saleLow','saleHigh','sampleCount','cycles','shippingSgd','repairSgd','feePercent','targetProfit']) data[key]=data[key]===''?0:Number(data[key]);
   if(data.saleLow>data.saleHigh){toast('成交低价不能高于高价');return;}
   const index=listings.findIndex(item=>item.id===data.id);
