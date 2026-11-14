@@ -31,7 +31,7 @@ function calc(item) {
   const purchaseSgd = fx ? (Number(item.priceCny)||0) * fx : NaN;
   const xianyuShippingCny = isXianyu(item.platform) ? 150 : 0;
   const shippingCny = fx ? xianyuShippingCny * fx : NaN;
-  const inspectionCny = fx ? 54 * fx : NaN;
+  const inspectionCny = isXianyu(item.platform) ? (fx ? 54 * fx : NaN) : 0;
   const shippingSgd = Number(item.shippingSgd)||0;
   const repairSgd = Number(item.repairSgd)||0;
   const rate = (Number(item.feePercent)||0)/100;
