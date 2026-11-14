@@ -23,7 +23,10 @@
     "repairSgd": 0,
     "feePercent": 0,
     "targetProfit": 150,
-    "createdAt": 1794638400000
+    "createdAt": 1794638400000,
+    "images": [
+      "https://media.karousell.com/media/photos/products/2026/11/14/apple_macbook_pro_14inch_m2_pr_1794635618_ba27d9c7_progressive.jpg"
+    ]
   },
   {
     "id": "xianyu-1101006740281",
@@ -49,7 +52,8 @@
     "repairSgd": 0,
     "feePercent": 0,
     "targetProfit": 150,
-    "createdAt": 1794638400000
+    "createdAt": 1794638400000,
+    "images": []
   },
   {
     "id": "xianyu-1097886235260",
@@ -75,7 +79,8 @@
     "repairSgd": 0,
     "feePercent": 0,
     "targetProfit": 150,
-    "createdAt": 1794638400000
+    "createdAt": 1794638400000,
+    "images": []
   },
   {
     "id": "xianyu-1099935361834",
@@ -101,6 +106,7 @@
     "repairSgd": 0,
     "feePercent": 0,
     "targetProfit": 150,
-    "createdAt": 1794638400000
+    "createdAt": 1794638400000,
+    "images": []
   }
 ]
