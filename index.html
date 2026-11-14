@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="#top" aria-label="MacBook Flip 首页"><span class="brand-mark">M</span><span>MacBook <b>Flip</b></span></a>
-    <div class="rate-pill"><span class="live-dot"></span><span id="rateText">正在获取汇率…</span><button id="refreshRate" class="icon-button" title="刷新汇率" aria-label="刷新汇率">↻</button></div>
+    <div class="header-status"><div class="rate-pill"><span class="live-dot"></span><span id="rateText">正在获取汇率…</span><button id="refreshRate" class="icon-button" title="刷新汇率" aria-label="刷新汇率">↻</button></div><div class="sync-label"><span class="sync-dot"></span><span id="syncText">等待巡查数据同步</span></div></div>
   </header>
 
   <main id="top" class="page-shell">
@@ -44,7 +44,8 @@
       <div class="dialog-head"><div><p class="eyebrow">LISTING DETAILS</p><h2 id="dialogTitle">添加商品</h2></div><button type="button" class="icon-button close-button" id="closeDialog" aria-label="关闭">×</button></div>
       <input type="hidden" id="listingId" name="id">
       <div class="form-section"><h3>商品信息</h3><div class="form-grid">
-        <label class="wide">商品原描述<input name="description" required placeholder="例：M3 Pro 14 寸，成色好，个人自用"></label>
+        <label>商品平台<select name="platform"><option value="闲鱼">闲鱼</option><option value="Carousell">Carousell</option><option value="其他">其他</option></select></label>
+        <label>商品原描述<input name="description" required placeholder="例：M3 Pro 14 寸，成色好，个人自用"></label>
         <label class="wide">商品链接<input name="url" type="url" placeholder="https://www.goofish.com/…"></label>
         <label>商品图片链接<input name="image" type="url" placeholder="https://…"></label>
         <label>卖家信息<input name="seller" placeholder="昵称、信用、所在地"></label>

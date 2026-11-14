@@ -1,16 +1,19 @@
 const STORAGE_KEY = 'macbook-flip-listings-v1';
 const RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD';
+const LISTINGS_URL = './listings.json';
+const SYNC_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let listings = loadListings();
 let cnyToSgd = null;
 let rateDate = '';
 let rateStatus = 'loading';
+let syncStatus = '正在同步巡查数据…';
 
 const grid = document.querySelector('#listingGrid');
 const dialog = document.querySelector('#listingDialog');
 const form = document.querySelector('#listingForm');
 
 function loadListings() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map(item => ({...item, platform:inferPlatform(item.platform, item.url)})); }
   catch { return []; }
 }
 function saveListings() { localStorage.setItem(STORAGE_KEY, JSON.stringify(listings)); }
@@ -26,7 +29,8 @@ function safeUrl(value) {
 function calc(item) {
   const fx = cnyToSgd;
   const purchaseSgd = fx ? (Number(item.priceCny)||0) * fx : NaN;
-  const shippingCny = fx ? 150 * fx : NaN;
+  const xianyuShippingCny = isXianyu(item.platform) ? 150 : 0;
+  const shippingCny = fx ? xianyuShippingCny * fx : NaN;
   const inspectionCny = fx ? 54 * fx : NaN;
   const shippingSgd = Number(item.shippingSgd)||0;
   const repairSgd = Number(item.repairSgd)||0;
@@ -41,7 +45,63 @@ function calc(item) {
   let decision = 'yellow';
   if (Number.isFinite(profitHigh) && profitHigh <= 0) decision = 'red';
   else if (Number.isFinite(profitLow) && profitLow > 0 && (Number(item.sampleCount)||0) >= 2) decision = 'green';
-  return {purchaseSgd,shippingCny,inspectionCny,shippingSgd,repairSgd,baseCost,low,high,profitLow,profitHigh,maxBuyCny,decision,rate};
+  return {purchaseSgd,shippingCny,xianyuShippingCny,inspectionCny,shippingSgd,repairSgd,baseCost,low,high,profitLow,profitHigh,maxBuyCny,decision,rate};
+}
+function isXianyu(platform='') { return /闲鱼|xianyu|goofish/i.test(String(platform)); }
+function inferPlatform(platform, url='') {
+  if (/carousell/i.test(`${platform} ${url}`)) return 'Carousell';
+  if (/闲鱼|xianyu|goofish/i.test(`${platform} ${url}`)) return '闲鱼';
+  return platform || '闲鱼';
+}
+function listingKey(item) { return String(item.id || item.itemId || item.goodsId || item.url || item.link || `${item.description || item.title || ''}|${item.priceCny || item.price || ''}`); }
+function normalizeFeedItem(raw) {
+  const item = {...raw};
+  item.id = listingKey(item);
+  item.url = item.url || item.link || item.itemUrl || item.detailUrl || '';
+  item.description = item.description || item.title || item.rawDescription || item.name || '未命名商品';
+  item.image = item.image || item.imageUrl || item.picUrl || item.cover || item.coverUrl || '';
+  item.seller = item.seller || item.sellerInfo || item.nickname || item.username || '';
+  item.priceCny = Number(item.priceCny ?? item.price ?? item.amount ?? 0);
+  item.platform = inferPlatform(item.platform || item.source || item.marketplace || '', item.url);
+  item.syncManaged = true;
+  item.createdAt = Number(item.createdAt || item.created_at || Date.now());
+  return item;
+}
+function preserveAnalysis(incoming, existing) {
+  if (!existing) return incoming;
+  const fields = ['saleLow','saleHigh','sampleCount','soldSource','shippingSgd','repairSgd','feePercent','targetProfit'];
+  for (const field of fields) if (existing[field] !== undefined && existing[field] !== '') incoming[field] = existing[field];
+  incoming.createdAt = existing.createdAt || incoming.createdAt;
+  return incoming;
+}
+function updateSyncText(text) {
+  syncStatus = text;
+  const element = document.querySelector('#syncText');
+  if (element) element.textContent = text;
+}
+async function syncListings() {
+  updateSyncText('正在同步巡查数据…');
+  try {
+    const response = await fetch(`${LISTINGS_URL}?_=${Date.now()}`, {cache:'no-store'});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const rows = Array.isArray(payload) ? payload : (payload.listings || payload.items || payload.results || []);
+    if (!Array.isArray(rows)) throw new Error('listings.json 格式应为数组或包含 listings/items/results 数组');
+    const currentByKey = new Map(listings.map(item => [listingKey(item), item]));
+    const synced = rows.filter(item => item && typeof item === 'object').map(raw => {
+      const normalized = normalizeFeedItem(raw);
+      return preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
+    });
+    const manual = listings.filter(item => !item.syncManaged);
+    listings = [...manual, ...synced];
+    saveListings();
+    const time = new Intl.DateTimeFormat('zh-SG', {hour:'2-digit',minute:'2-digit'}).format(new Date());
+    updateSyncText(`已同步 ${synced.length} 条 · ${time}`);
+    render();
+  } catch (error) {
+    console.error('巡查数据同步失败', error);
+    updateSyncText('巡查数据同步失败 · 稍后重试');
+  }
 }
 function spec(label, value) { return `<div><div class="spec-label">${label}</div><div class="spec-value">${esc(value || '—')}</div></div>`; }
 function renderCard(item) {
@@ -59,10 +119,10 @@ function renderCard(item) {
       <div class="card-heading"><h2>${esc(item.description || '未命名商品')}</h2><span class="decision ${decision}">${labels[decision]}</span></div>
       <p class="seller-line">卖家：${esc(item.seller || '未填写')}${listing?` · <a href="${esc(listing)}" target="_blank" rel="noopener">查看商品 ↗</a>`:''}</p>
       <div class="profit-panel"><div class="profit-top"><span class="profit-label">预计利润区间</span><strong class="profit-amount ${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div><div class="profit-sub"><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span><span>售价 ${money(c.low)} – ${money(c.high)}</span></div></div>
-      <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
+      <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
       <section class="detail-section"><h3 class="section-title">费用明细 · 新币</h3><div class="cost-list">
         <div class="cost-row"><span>商品价格 · ¥${Number(item.priceCny||0).toLocaleString('zh-CN')} × 汇率</span><span>${money(c.purchaseSgd)}</span></div>
-        <div class="cost-row"><span>闲鱼运费 · ¥150 × 汇率</span><span>${money(c.shippingCny)}</span></div>
+        <div class="cost-row"><span>${isXianyu(item.platform)?'闲鱼运费 · ¥150 × 汇率':'闲鱼运费 · Carousell 不适用'}</span><span>${money(c.shippingCny)}</span></div>
         <div class="cost-row"><span>验货宝 · ¥54 × 汇率</span><span>${money(c.inspectionCny)}</span></div>
         <div class="cost-row"><span>跨境运输</span><span>${money(c.shippingSgd)}</span></div>
         <div class="cost-row"><span>维修 / 整备</span><span>${money(c.repairSgd)}</span></div>
@@ -101,7 +161,7 @@ function openForm(item) {
   form.reset();
   document.querySelector('#listingId').value=item?.id||'';
   document.querySelector('#dialogTitle').textContent=item?'编辑商品':'添加商品';
-  const defaults={shippingSgd:35,repairSgd:0,feePercent:0,targetProfit:150,sampleCount:1};
+  const defaults={platform:'闲鱼',shippingSgd:35,repairSgd:0,feePercent:0,targetProfit:150,sampleCount:1};
   for (const [key,value] of Object.entries({...defaults,...(item||{})})) {
     const input=form.elements.namedItem(key);
     if(input) input.value=value ?? '';
@@ -115,6 +175,7 @@ document.querySelector('#cancelDialog').addEventListener('click',()=>dialog.clos
 document.querySelector('#sortMode').addEventListener('change',render);
 document.querySelector('#refreshRate').addEventListener('click',fetchRate);
 document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus==='error')fetchRate();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
 grid.addEventListener('click',event=>{
   const edit=event.target.closest('.edit-button');
   const remove=event.target.closest('.delete-button');
@@ -127,9 +188,9 @@ form.addEventListener('submit',event=>{
   for(const key of ['priceCny','saleLow','saleHigh','sampleCount','cycles','shippingSgd','repairSgd','feePercent','targetProfit']) data[key]=data[key]===''?0:Number(data[key]);
   if(data.saleLow>data.saleHigh){toast('成交低价不能高于高价');return;}
   const index=listings.findIndex(item=>item.id===data.id);
-  data.id=data.id||crypto.randomUUID(); data.createdAt=index>=0?listings[index].createdAt:Date.now();
+  data.id=data.id||crypto.randomUUID(); data.createdAt=index>=0?listings[index].createdAt:Date.now(); data.syncManaged=index>=0?!!listings[index].syncManaged:false;
   if(index>=0)listings[index]=data;else listings.push(data);
   saveListings();render();dialog.close();
 });
 function toast(message){const el=document.createElement('div');el.className='toast';el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),2200);}
-render(); fetchRate();
+render(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);
