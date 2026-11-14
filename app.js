@@ -20,6 +20,13 @@ const imageViewerStage = document.querySelector('#imageViewerStage');
 const fullSizeImage = document.querySelector('#fullSizeImage');
 const imageDimensions = document.querySelector('#imageDimensions');
 const imageSizeToggle = document.querySelector('#imageSizeToggle');
+const imageCounter = document.querySelector('#imageCounter');
+const previousViewerImage = document.querySelector('#previousViewerImage');
+const nextViewerImage = document.querySelector('#nextViewerImage');
+let viewerImages = [];
+let viewerIndex = 0;
+let viewerDescription = '商品原图';
+let viewerTouchStart = null;
 
 function loadListings() {
   try {
@@ -145,14 +152,33 @@ function updateSyncText(text) {
   const element = document.querySelector('#syncText');
   if (element) element.textContent = text;
 }
-function openImageViewer(src, alt) {
+function openImageViewer(images, index=0, description='商品原图') {
+  viewerImages = images;
+  if (!viewerImages.length) return;
+  viewerIndex = Math.max(0, Math.min(index, viewerImages.length - 1));
+  viewerDescription = description || '商品原图';
   imageViewerStage.classList.remove('actual-size');
   fullSizeImage.classList.remove('actual-size');
-  fullSizeImage.src = src;
-  fullSizeImage.alt = alt || '商品原图';
-  imageDimensions.textContent = '正在读取图片尺寸…';
-  imageSizeToggle.textContent = '查看原尺寸（100%）';
+  showViewerImage();
   imageDialog.showModal();
+}
+function showViewerImage() {
+  imageViewerStage.classList.remove('actual-size');
+  fullSizeImage.classList.remove('actual-size');
+  fullSizeImage.src = viewerImages[viewerIndex];
+  fullSizeImage.alt = `${viewerDescription} · 图片 ${viewerIndex + 1}`;
+  imageDimensions.textContent = '正在读取图片尺寸…';
+  imageCounter.textContent = `${viewerIndex + 1} / ${viewerImages.length}`;
+  imageCounter.hidden = viewerImages.length < 2;
+  previousViewerImage.hidden = viewerImages.length < 2;
+  nextViewerImage.hidden = viewerImages.length < 2;
+  imageSizeToggle.textContent = '查看原尺寸（100%）';
+  imageDialog.scrollTop = 0;
+}
+function stepViewerImage(amount) {
+  if (viewerImages.length < 2) return;
+  viewerIndex = (viewerIndex + amount + viewerImages.length) % viewerImages.length;
+  showViewerImage();
 }
 function toggleImageSize() {
   const actualSize = imageViewerStage.classList.toggle('actual-size');
@@ -314,7 +340,16 @@ document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
 grid.addEventListener('click',event=>{
   const imageOpen=event.target.closest('[data-image-open]');
-  if(imageOpen){openImageViewer(imageOpen.dataset.imageSrc,imageOpen.dataset.imageAlt);return;}
+  if(imageOpen){
+    const card=imageOpen.closest('.listing-card');
+    const item=listings.find(x=>x.id===card?.dataset.id);
+    const images=(Array.isArray(item?.images)?item.images:(item?.image?[item.image]:[]))
+      .map(image=>safeUrl(typeof image==='string'?image:(image?.url||image?.src||'')))
+      .filter(Boolean).slice(0,10);
+    const currentImage=images.length?(galleryIndexes.get(item?.id)||0)%images.length:0;
+    openImageViewer(images.length?images:[imageOpen.dataset.imageSrc].filter(Boolean),currentImage,item?.description||imageOpen.dataset.imageAlt);
+    return;
+  }
   const gallery=event.target.closest('.gallery-button');
   if(gallery){
     const item=listings.find(x=>x.id===gallery.dataset.id);
@@ -330,9 +365,32 @@ grid.addEventListener('click',event=>{
 imageSizeToggle.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('load',()=>{imageDimensions.textContent=`${fullSizeImage.naturalWidth} × ${fullSizeImage.naturalHeight} px`;});
+previousViewerImage.addEventListener('click',()=>stepViewerImage(-1));
+nextViewerImage.addEventListener('click',()=>stepViewerImage(1));
+imageDialog.addEventListener('keydown',event=>{
+  if(event.key==='ArrowLeft'){event.preventDefault();stepViewerImage(-1);}
+  if(event.key==='ArrowRight'){event.preventDefault();stepViewerImage(1);}
+});
+imageViewerStage.addEventListener('touchstart',event=>{
+  if(event.touches.length!==1||viewerImages.length<2)return;
+  const touch=event.changedTouches[0];
+  viewerTouchStart={x:touch.clientX,y:touch.clientY};
+},{passive:true});
+imageViewerStage.addEventListener('touchend',event=>{
+  if(!viewerTouchStart)return;
+  const touch=event.changedTouches[0];
+  const deltaX=touch.clientX-viewerTouchStart.x;
+  const deltaY=touch.clientY-viewerTouchStart.y;
+  viewerTouchStart=null;
+  if(Math.abs(deltaX)>48&&Math.abs(deltaX)>Math.abs(deltaY)*1.2){
+    event.preventDefault();
+    stepViewerImage(deltaX<0?1:-1);
+  }
+},{passive:false});
+imageViewerStage.addEventListener('touchcancel',()=>{viewerTouchStart=null;},{passive:true});
 document.querySelector('#closeImageViewer').addEventListener('click',()=>imageDialog.close());
 imageDialog.addEventListener('click',event=>{if(event.target===imageDialog)imageDialog.close();});
-imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');});
+imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');viewerImages=[];viewerTouchStart=null;});
 form.addEventListener('submit',event=>{
   event.preventDefault();
   const data=Object.fromEntries(new FormData(form).entries());
