@@ -119,6 +119,8 @@ function renderCard(item) {
   const decision = rateStatus === 'error' ? 'yellow' : c.decision;
   const sold = safeUrl(item.soldSource);
   const listing = safeUrl(item.url);
+  const platformLabel = item.platform || '未注明平台';
+  const platformClass = item.platform === 'Carousell' ? 'carousell' : item.platform === '闲鱼' ? 'xianyu' : 'other';
   const images = (Array.isArray(item.images) ? item.images : [item.image])
     .map(image => safeUrl(typeof image === 'string' ? image : (image?.url || image?.src || '')))
     .filter(Boolean).slice(0, 10);
@@ -129,6 +131,7 @@ function renderCard(item) {
   return `<article class="listing-card" data-id="${esc(item.id)}">
     ${image ? `<div class="card-cover"><img src="${esc(image)}" alt="${esc(item.description)} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.remove()">${images.length > 1 ? `<div class="gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
     <div class="card-content">
+      <div class="platform-row"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span></div>
       <div class="card-heading"><h2>${esc(item.description || '未命名商品')}</h2><span class="decision ${decision}">${labels[decision]}</span></div>
       <p class="seller-line">卖家：${esc(item.seller || '未填写')}</p>
       ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
