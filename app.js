@@ -12,6 +12,11 @@ const galleryIndexes = new Map();
 const grid = document.querySelector('#listingGrid');
 const dialog = document.querySelector('#listingDialog');
 const form = document.querySelector('#listingForm');
+const imageDialog = document.querySelector('#imageDialog');
+const imageViewerStage = document.querySelector('#imageViewerStage');
+const fullSizeImage = document.querySelector('#fullSizeImage');
+const imageDimensions = document.querySelector('#imageDimensions');
+const imageSizeToggle = document.querySelector('#imageSizeToggle');
 
 function loadListings() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map(item => ({...item, platform:inferPlatform(item.platform, item.url)})); }
@@ -86,6 +91,20 @@ function updateSyncText(text) {
   const element = document.querySelector('#syncText');
   if (element) element.textContent = text;
 }
+function openImageViewer(src, alt) {
+  imageViewerStage.classList.remove('actual-size');
+  fullSizeImage.classList.remove('actual-size');
+  fullSizeImage.src = src;
+  fullSizeImage.alt = alt || '商品原图';
+  imageDimensions.textContent = '正在读取图片尺寸…';
+  imageSizeToggle.textContent = '查看原尺寸（100%）';
+  imageDialog.showModal();
+}
+function toggleImageSize() {
+  const actualSize = imageViewerStage.classList.toggle('actual-size');
+  fullSizeImage.classList.toggle('actual-size', actualSize);
+  imageSizeToggle.textContent = actualSize ? '适应窗口' : '查看原尺寸（100%）';
+}
 async function syncListings() {
   updateSyncText('正在同步巡查数据…');
   try {
@@ -129,7 +148,7 @@ function renderCard(item) {
   const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
   const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
   return `<article class="listing-card" data-id="${esc(item.id)}">
-    ${image ? `<div class="card-cover"><img src="${esc(image)}" alt="${esc(item.description)} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.remove()">${images.length > 1 ? `<div class="gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
+    ${image ? `<div class="card-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">查看原图 ↗</span>${images.length > 1 ? `<div class="gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
     <div class="card-content">
       <div class="platform-row"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span></div>
       <div class="card-heading"><h2>${esc(item.description || '未命名商品')}</h2><span class="decision ${decision}">${labels[decision]}</span></div>
@@ -226,6 +245,8 @@ document.querySelector('#syncNow').addEventListener('click', async event => {
 document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus==='error')fetchRate();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
 grid.addEventListener('click',event=>{
+  const imageOpen=event.target.closest('[data-image-open]');
+  if(imageOpen){openImageViewer(imageOpen.dataset.imageSrc,imageOpen.dataset.imageAlt);return;}
   const gallery=event.target.closest('.gallery-button');
   if(gallery){
     const item=listings.find(x=>x.id===gallery.dataset.id);
@@ -238,6 +259,12 @@ grid.addEventListener('click',event=>{
   if(edit){const item=listings.find(x=>x.id===edit.dataset.id);if(item)openForm(item);}
   if(remove){listings=listings.filter(x=>x.id!==remove.dataset.id);saveListings();render();}
 });
+imageSizeToggle.addEventListener('click',toggleImageSize);
+fullSizeImage.addEventListener('click',toggleImageSize);
+fullSizeImage.addEventListener('load',()=>{imageDimensions.textContent=`${fullSizeImage.naturalWidth} × ${fullSizeImage.naturalHeight} px`;});
+document.querySelector('#closeImageViewer').addEventListener('click',()=>imageDialog.close());
+imageDialog.addEventListener('click',event=>{if(event.target===imageDialog)imageDialog.close();});
+imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');});
 form.addEventListener('submit',event=>{
   event.preventDefault();
   const data=Object.fromEntries(new FormData(form).entries());

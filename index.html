@@ -71,6 +71,14 @@
       <div class="dialog-actions"><button type="button" class="secondary-button" id="cancelDialog">取消</button><button class="primary-button" type="submit">保存商品</button></div>
     </form>
   </dialog>
+  <dialog id="imageDialog" class="image-dialog" aria-label="商品原图预览">
+    <div class="image-viewer-toolbar">
+      <div class="image-viewer-title"><strong>商品原图</strong><span id="imageDimensions">正在读取图片尺寸…</span></div>
+      <div class="image-viewer-actions"><button type="button" class="image-size-toggle" id="imageSizeToggle">查看原尺寸（100%）</button><button type="button" class="image-viewer-close" id="closeImageViewer" aria-label="关闭原图">×</button></div>
+    </div>
+    <div id="imageViewerStage" class="image-viewer-stage"><img id="fullSizeImage" alt="商品原图" title="点击切换显示比例"></div>
+    <p class="image-viewer-hint">点击照片可在适应窗口与原尺寸之间切换</p>
+  </dialog>
   <script src="app.js"></script>
 </body>
 </html>
