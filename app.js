@@ -1,12 +1,15 @@
 const STORAGE_KEY = 'macbook-flip-listings-v1';
+const EXPIRED_SYNC_IDS_KEY = 'macbook-flip-expired-listings-v1';
 const RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD';
 const LISTINGS_URL = './listings.json';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
+const SYNCED_LISTING_TTL_MS = 5 * 24 * 60 * 60 * 1000;
 let listings = loadListings();
 let cnyToSgd = null;
 let rateDate = '';
 let rateStatus = 'loading';
 let syncStatus = '正在同步巡查数据…';
+let expiryTimer = null;
 const galleryIndexes = new Map();
 
 const grid = document.querySelector('#listingGrid');
@@ -19,10 +22,59 @@ const imageDimensions = document.querySelector('#imageDimensions');
 const imageSizeToggle = document.querySelector('#imageSizeToggle');
 
 function loadListings() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map(item => ({...item, platform:inferPlatform(item.platform, item.url)})); }
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map(item => ({
+      ...item,
+      platform: inferPlatform(item.platform, item.url),
+      ...(item.syncManaged ? {firstSeenAt: timestamp(item.firstSeenAt || item.createdAt || item.created_at, Date.now())} : {})
+    }));
+  }
   catch { return []; }
 }
 function saveListings() { localStorage.setItem(STORAGE_KEY, JSON.stringify(listings)); }
+function timestamp(value, fallback=Date.now()) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+function loadExpiredSyncIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(EXPIRED_SYNC_IDS_KEY) || '[]');
+    return new Set(Array.isArray(ids) ? ids.map(String) : []);
+  } catch { return new Set(); }
+}
+function saveExpiredSyncIds(ids) { localStorage.setItem(EXPIRED_SYNC_IDS_KEY, JSON.stringify([...ids])); }
+function pruneExpiredListings(now=Date.now()) {
+  const expiredIds = loadExpiredSyncIds();
+  let removed = 0;
+  let newExpiredId = false;
+  listings = listings.filter(item => {
+    if (!item.syncManaged) return true;
+    const id = listingKey(item);
+    const firstSeenAt = timestamp(item.firstSeenAt || item.createdAt || item.created_at, now);
+    item.firstSeenAt = firstSeenAt;
+    if (expiredIds.has(id) || now - firstSeenAt >= SYNCED_LISTING_TTL_MS) {
+      if (!expiredIds.has(id)) { expiredIds.add(id); newExpiredId = true; }
+      removed += 1;
+      return false;
+    }
+    return true;
+  });
+  if (removed) saveListings();
+  if (newExpiredId) saveExpiredSyncIds(expiredIds);
+  return removed;
+}
+function scheduleExpiryCheck() {
+  if (expiryTimer) clearTimeout(expiryTimer);
+  const expiries = listings
+    .filter(item => item.syncManaged)
+    .map(item => timestamp(item.firstSeenAt || item.createdAt, Date.now()) + SYNCED_LISTING_TTL_MS);
+  if (!expiries.length) return;
+  const delay = Math.max(1000, Math.min(...expiries) - Date.now() + 20);
+  expiryTimer = setTimeout(() => {
+    if (pruneExpiredListings()) render();
+    scheduleExpiryCheck();
+  }, delay);
+}
 function esc(value='') { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(value, currency='SGD') {
   if (!Number.isFinite(value)) return '—';
@@ -76,7 +128,8 @@ function normalizeFeedItem(raw) {
   item.priceCny = Number(item.priceCny ?? item.price ?? item.amount ?? 0);
   item.platform = inferPlatform(item.platform || item.source || item.marketplace || '', item.url);
   item.syncManaged = true;
-  item.createdAt = Number(item.createdAt || item.created_at || Date.now());
+  item.createdAt = timestamp(item.createdAt || item.created_at, Date.now());
+  item.firstSeenAt = timestamp(item.firstSeenAt || item.first_seen_at || item.discoveredAt || item.discovered_at || item.createdAt, item.createdAt);
   return item;
 }
 function preserveAnalysis(incoming, existing) {
@@ -84,6 +137,7 @@ function preserveAnalysis(incoming, existing) {
   const fields = ['saleLow','saleHigh','sampleCount','soldSource','shippingSgd','repairSgd','feePercent','targetProfit'];
   for (const field of fields) if (existing[field] !== undefined && existing[field] !== '') incoming[field] = existing[field];
   incoming.createdAt = existing.createdAt || incoming.createdAt;
+  incoming.firstSeenAt = timestamp(existing.firstSeenAt || existing.createdAt || incoming.firstSeenAt, incoming.firstSeenAt);
   return incoming;
 }
 function updateSyncText(text) {
@@ -107,6 +161,8 @@ function toggleImageSize() {
 }
 async function syncListings() {
   updateSyncText('正在同步巡查数据…');
+  let expiredCount = pruneExpiredListings();
+  if (expiredCount) render();
   try {
     const response = await fetch(`${LISTINGS_URL}?_=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -114,15 +170,27 @@ async function syncListings() {
     const rows = Array.isArray(payload) ? payload : (payload.listings || payload.items || payload.results || []);
     if (!Array.isArray(rows)) throw new Error('listings.json 格式应为数组或包含 listings/items/results 数组');
     const currentByKey = new Map(listings.map(item => [listingKey(item), item]));
-    const synced = rows.filter(item => item && typeof item === 'object').map(raw => {
+    const expiredIds = loadExpiredSyncIds();
+    const synced = [];
+    const now = Date.now();
+    for (const raw of rows.filter(item => item && typeof item === 'object')) {
       const normalized = normalizeFeedItem(raw);
-      return preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
-    });
+      const item = preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
+      const id = listingKey(item);
+      const wasExpired = expiredIds.has(id);
+      if (wasExpired || now - timestamp(item.firstSeenAt, now) >= SYNCED_LISTING_TTL_MS) {
+        if (!wasExpired) { expiredIds.add(id); expiredCount += 1; }
+        continue;
+      }
+      synced.push(item);
+    }
+    saveExpiredSyncIds(expiredIds);
     const manual = listings.filter(item => !item.syncManaged);
     listings = [...manual, ...synced];
     saveListings();
+    scheduleExpiryCheck();
     const time = new Intl.DateTimeFormat('zh-SG', {hour:'2-digit',minute:'2-digit'}).format(new Date());
-    updateSyncText(`已同步 ${synced.length} 条 · ${time}`);
+    updateSyncText(`已同步 ${synced.length} 条${expiredCount ? ` · 已清理过期 ${expiredCount} 条` : ''} · ${time}`);
     render();
     return true;
   } catch (error) {
@@ -275,9 +343,10 @@ form.addEventListener('submit',event=>{
   for(const key of ['priceCny','saleLow','saleHigh','sampleCount','cycles','shippingSgd','repairSgd','feePercent','targetProfit']) data[key]=data[key]===''?0:Number(data[key]);
   if(data.saleLow>data.saleHigh){toast('成交低价不能高于高价');return;}
   const index=listings.findIndex(item=>item.id===data.id);
-  data.id=data.id||crypto.randomUUID(); data.createdAt=index>=0?listings[index].createdAt:Date.now(); data.syncManaged=index>=0?!!listings[index].syncManaged:false;
+  data.id=data.id||crypto.randomUUID(); data.createdAt=index>=0?listings[index].createdAt:Date.now(); data.firstSeenAt=index>=0?(listings[index].firstSeenAt||listings[index].createdAt||Date.now()):Date.now(); data.syncManaged=index>=0?!!listings[index].syncManaged:false;
   if(index>=0)listings[index]=data;else listings.push(data);
   saveListings();render();dialog.close();
 });
 function toast(message){const el=document.createElement('div');el.className='toast';el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),2200);}
-render(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);
+pruneExpiredListings();
+render(); scheduleExpiryCheck(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);
