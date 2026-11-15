@@ -9,26 +9,25 @@
   <meta name="apple-mobile-web-app-title" content="Macbook flip">
   <meta name="description" content="MacBook Pro 翻新买卖核算工具：实时汇率、费用明细、成交价估算与利润排序。">
   <title>Macbook flip</title>
-  <link rel="stylesheet" href="styles.css?v=cloud-sync-20261115b">
-  <link rel="icon" href="logo.svg?v=rounded-20261115" type="image/svg+xml">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=logo-rounded-20261115">
-  <link rel="manifest" href="manifest.webmanifest?v=logo-rounded-20261115">
+  <link rel="stylesheet" href="styles.css?v=adaptive-grid-cloud-20261115-3">
+  <link rel="icon" href="logo-source.png?v=calculator-20261115" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=calculator-20261115">
+  <link rel="manifest" href="manifest.webmanifest?v=calculator-20261115">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="Macbook flip 首页"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><linearGradient id="brandGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42e968"/><stop offset="1" stop-color="#00bd78"/></linearGradient></defs><rect x=".5" y=".5" width="39" height="39" rx="14" fill="url(#brandGreen)"/><rect x="10.5" y="7.8" width="19" height="15" rx="4" fill="none" stroke="#fff" stroke-width="2.2"/><circle cx="20" cy="10.1" r=".7" fill="#fff"/><path d="M7.3 26h25.4l-2.2 3.2a2.2 2.2 0 0 1-1.8 1H11.3a2.2 2.2 0 0 1-1.8-1L7.3 26Z" fill="#fff"/><path d="M17.2 27.4h5.6" stroke="#12a96b" stroke-width="1.25" stroke-linecap="round"/></svg></span><span>Macbook <b>flip</b></span></a>
-    <div class="header-status"><div class="rate-pill"><span class="live-dot"></span><span id="rateText">正在获取汇率…</span><button id="refreshRate" class="icon-button" title="刷新汇率" aria-label="刷新汇率">↻</button></div><div class="sync-controls"><div class="sync-label"><span class="sync-dot"></span><span id="syncText">等待巡查数据同步</span></div><button id="githubAuthButton" class="github-auth-button" type="button" aria-label="授权删除和分析同步到 GitHub" title="只用于把删除和分析回写 GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 3 3-3 3-2-2-2 2 2 2-3 3"/></svg><span id="githubAuthText">云端同步授权</span></button><button id="backupData" class="backup-button" type="button" aria-label="导出或导入个人数据" title="迁移本机保存的分析数据"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span>数据备份</span></button><button id="syncNow" class="sync-button" type="button" aria-label="手动同步最新巡查数据"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/></svg><span>同步巡查</span></button></div></div>
+    <a class="brand" href="#top" aria-label="Macbook flip 首页"><span class="brand-mark" aria-hidden="true"><img src="logo-source.png" alt=""></span><span>Macbook <b>flip</b></span></a>
+    <div class="header-status"><div class="rate-pill"><span class="live-dot"></span><span id="rateText">正在获取汇率…</span><button id="refreshRate" class="icon-button" title="刷新汇率" aria-label="刷新汇率">↻</button></div><div class="sync-controls"><div class="sync-label"><span class="sync-dot"></span><span id="syncText">等待巡查数据同步</span></div><button id="githubAuthButton" class="github-auth-button" type="button" aria-label="授权写入云端分析和删除同步" title="把分析、手动商品和删除记录同步到 GitHub 云端"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 3 3-3 3-2-2-2 2 2 2-3 3"/></svg><span id="githubAuthText">云端写入授权</span></button><button id="backupData" class="backup-button" type="button" aria-label="导出或导入个人数据备份" title="导出离线备份或从备份恢复"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span>数据备份</span></button><button id="syncNow" class="sync-button" type="button" aria-label="手动同步最新巡查数据"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/></svg><span>同步巡查</span></button></div></div>
   </header>
 
   <main id="top" class="page-shell">
     <section class="toolbar" aria-label="列表工具">
       <div class="toolbar-copy"><strong id="listingCount">0 台商品</strong><span>按预期收益查看</span></div>
-      <label class="sort-select">排序
-        <select id="sortMode" aria-label="排序方式"><option value="profit">利润优先</option><option value="recommend">推荐指数</option><option value="ask">挂价低到高</option><option value="date">最近添加</option></select>
-      </label>
-      <label class="sort-select">平台
-        <select id="platformFilter" aria-label="按平台筛选"><option value="all">全部平台</option><option value="闲鱼">闲鱼</option><option value="Carousell">Carousell</option></select>
-      </label>
+      <div class="toolbar-controls"><label class="sort-select">排序
+          <select id="sortMode" aria-label="排序方式"><option value="profit">利润优先</option><option value="recommend">推荐指数</option><option value="ask">挂价低到高</option><option value="date">最近添加</option></select>
+        </label><label class="sort-select platform-filter">平台
+          <select id="platformFilter" aria-label="平台筛选"><option value="all">全部</option><option value="xianyu">闲鱼</option><option value="carousell">Carousell</option></select>
+        </label></div>
     </section>
 
     <section id="listingGrid" class="listing-grid" aria-live="polite"></section>
@@ -70,18 +69,18 @@
   </dialog>
   <dialog id="githubTokenDialog" class="token-dialog" aria-label="GitHub 仓库授权">
     <form id="githubTokenForm" novalidate>
-      <div class="dialog-head"><div><p class="eyebrow">GITHUB ACCESS</p><h2>连接 GitHub</h2></div><button type="button" class="icon-button close-button" id="closeGithubTokenDialog" aria-label="关闭">×</button></div>
-      <p class="token-explanation">用于把删除和分析同步到电脑和手机。请创建只授权 <b>BENGBENGBENG7/macbook-flip-calculator</b> 的细粒度访问令牌，并设置 <b>Contents: Read and write</b>。</p>
+      <div class="dialog-head"><div><p class="eyebrow">GITHUB CLOUD</p><h2>云端写入授权</h2></div><button type="button" class="icon-button close-button" id="closeGithubTokenDialog" aria-label="关闭">×</button></div>
+      <p class="token-explanation">巡查列表和个人分析可从 GitHub 云端读取。要把分析修改、手动添加商品和删除记录同步到其他设备，请创建只授权 <b>BENGBENGBENG7/macbook-flip-calculator</b> 的细粒度访问令牌，并设置 <b>Contents: Read and write</b>。写入的个人分析保存在公开仓库，任何人都能查看。</p>
       <a class="token-create-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">前往 GitHub 创建令牌 ↗</a>
       <label class="token-label" for="githubTokenInput">Fine-grained personal access token</label>
       <input id="githubTokenInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
-      <p class="token-security-note">网页版只保存在当前浏览器标签页会话；电脑 App 保存在 macOS 钥匙串。令牌不会上传到公开代码。</p>
+      <p class="token-security-note">网页令牌只保存在当前浏览器会话；电脑 App 保存在 macOS 钥匙串。令牌不会上传到仓库。新设备首次写入时需在该设备授权一次。</p>
       <div class="dialog-actions token-actions"><button type="button" class="quiet-button delete" id="disconnectGithub" hidden>断开并移除令牌</button><button type="button" class="secondary-button" id="cancelGithubToken">取消</button><button class="primary-button" id="saveGithubToken">连接</button></div>
     </form>
   </dialog>
   <dialog id="backupDialog" class="token-dialog backup-dialog" aria-label="数据备份与迁移">
     <div class="dialog-head"><div><p class="eyebrow">DATA PORTABILITY</p><h2>备份与迁移</h2></div><button type="button" class="icon-button close-button" id="closeBackupDialog" aria-label="关闭">×</button></div>
-    <p class="token-explanation">商品分析和删除记录保存在当前设备或浏览器。换电脑前先导出备份，再在新设备导入即可恢复；GitHub 令牌不会放进备份，需要在新设备重新授权。</p>
+    <p class="token-explanation">巡查列表和已同步分析会从 GitHub 云端自动读取；获得云端写入授权后，新的分析修改、手动商品和删除也会同步。这里仍可导出离线备份，或从旧备份恢复。GitHub 令牌不会放进备份，新设备写入云端时需重新授权。</p>
     <div class="dialog-actions backup-actions"><button type="button" class="secondary-button" id="importBackup">导入备份</button><button type="button" class="primary-button" id="exportBackup">导出备份</button></div>
     <input id="backupFileInput" type="file" accept="application/json,.json" hidden>
   </dialog>
@@ -93,6 +92,6 @@
     <div id="imageViewerStage" class="image-viewer-stage"><button type="button" id="previousViewerImage" class="image-viewer-nav previous" aria-label="上一张照片" hidden>‹</button><img id="fullSizeImage" alt="商品原图" title="点击切换显示比例"><button type="button" id="nextViewerImage" class="image-viewer-nav next" aria-label="下一张照片" hidden>›</button></div>
     <p class="image-viewer-hint">使用左右按钮切换照片 · 点击照片切换原尺寸 · 可双指缩放</p>
   </dialog>
-  <script src="app.js?v=cloud-sync-20261115"></script>
+  <script src="app.js?v=adaptive-grid-cloud-20261115-3"></script>
 </body>
 </html>

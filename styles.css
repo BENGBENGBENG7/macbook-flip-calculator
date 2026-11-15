@@ -160,6 +160,48 @@
   .detail-gallery-controls .gallery-button:first-child{left:8px}.detail-gallery-controls .gallery-button:last-child{right:8px}
   .price-comparison .money-toggle{white-space:normal}
 }
+
+/* Even, responsive listing grid and the supplied calculator mark. */
+.brand-mark{display:block;width:36px;height:36px;border-radius:12px;background:#f4f4f4;box-shadow:0 2px 8px #17221e12}
+.brand-mark img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
+.page-shell{width:100%;max-width:1840px;margin-inline:auto;padding-inline:clamp(12px,2.4vw,40px)}
+.toolbar{height:auto;min-height:54px;gap:14px}
+.toolbar-controls{display:flex;align-items:center;gap:9px;flex:none}
+.sort-select{min-height:36px}
+.sort-select select{max-width:154px}
+.platform-filter select{min-width:105px}
+.listing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px;align-items:stretch;column-count:initial;column-gap:initial;column-fill:initial}
+.listing-card.feed-card{display:flex;flex-direction:column;width:auto;height:100%;margin:0;break-inside:auto;vertical-align:initial}
+.feed-image{width:100%;height:auto;min-height:0;aspect-ratio:4/3;background:#eef0ef}
+.feed-image img{width:100%;height:100%;object-fit:contain}
+.feed-image-empty{display:grid;place-items:center}
+.feed-card-content{display:flex;flex:1;flex-direction:column;min-width:0}
+.feed-title{align-items:flex-start;min-height:calc(1.5em * 2);max-height:calc(1.5em * 2);overflow:hidden;line-height:1.5}
+.feed-title>span:last-child{display:-webkit-box;min-width:0;max-height:calc(1.5em * 2);min-height:calc(1.5em * 2);overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow-wrap:anywhere}
+.feed-price-row{margin-top:auto;padding-top:11px}
+.feed-profit{min-height:28px;padding-top:8px;margin-top:6px;border-top:1px solid #eff0f1}
+.detail-cover{display:block;width:100%;height:auto;min-height:0;padding:0;overflow:hidden;background:#f3f4f5}
+.detail-cover .card-image-button{position:relative;inset:auto;width:100%;height:auto;min-height:0;padding:0;overflow:hidden}
+.detail-cover .card-image-button img{display:block;width:100%;height:auto;max-width:100%;max-height:70vh;object-fit:contain}
+.detail-cover.image-error{display:none}
+body{overflow-x:hidden}
+@media(max-width:620px){
+  .brand-mark{width:31px;height:31px;border-radius:11px}
+  .toolbar{min-height:45px}
+  .toolbar-controls{gap:5px}
+  .sort-select{min-height:32px;gap:4px;padding:5px 7px;font-size:9px}
+  .sort-select select{min-width:0;max-width:104px;padding-right:12px;font-size:10px}
+  .platform-filter select{min-width:78px}
+  .listing-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:10px}
+  .listing-card.feed-card{margin:0;border-radius:12px}
+  .feed-card-content{padding:10px 10px 11px}
+  .feed-title{gap:6px;min-height:calc(1.5em * 2);max-height:calc(1.5em * 2);font-size:12px}
+  .feed-title>span:last-child{max-height:calc(1.5em * 2);min-height:calc(1.5em * 2)}
+  .feed-price-row{margin-top:auto;padding-top:9px}
+  .feed-price>strong{font-size:12px}
+  .feed-profit{min-height:26px;font-size:9px}
+  .detail-cover .card-image-button img{max-height:70vh}
+}
 .token-actions #disconnectGithub{margin-right:auto}
 .token-actions button{font-size:12px}
 @media(max-width:620px){
