@@ -751,7 +751,7 @@ function renderDetail(item) {
   const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
   return `<div class="detail-page-nav"><button type="button" class="back-button" id="backToFeed">${uiIcon('left')}<span>返回巡查列表</span></button><span>商品详情</span></div>
   <article class="listing-card detail-card" data-id="${esc(item.id)}">
-    ${image ? `<div class="detail-media"><div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">${uiIcon('external')}查看原图</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">${uiIcon('left')}</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">${uiIcon('right')}</button></div></div>` : ''}</div></div>` : ''}
+    ${image ? `<div class="detail-media"><div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('button').removeAttribute('aria-label')"><span class="detail-image-fallback">图片暂时无法加载<span>点击重试查看原图</span></span></button><span class="image-open-hint" aria-hidden="true">${uiIcon('external')}查看原图</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">${uiIcon('left')}</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">${uiIcon('right')}</button></div></div>` : ''}</div></div>` : ''}
     <div class="card-content detail-card-content">
       <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2 tabindex="-1">${esc(listingHeadline(item))}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
       <div class="price-comparison"><div class="asking-cell"><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong></div><div><small>建议购入价</small><strong class="buy-price">${suggestedBuyLabel(item,c)}</strong>${Number.isFinite(c.maxBuyCny) && Number(item.priceCny)>0 && c.maxBuyCny>Number(item.priceCny)?'<small class="buy-note">挂价已低于可接受上限，按挂价买即可</small>':''}</div><div class="comparison-reference">${soldReference(item,c)}</div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
@@ -801,6 +801,7 @@ function render() {
 }
 function updateRateText() {
   const el = document.querySelector('#rateText');
+  document.querySelector('.rate-pill').dataset.state=rateStatus;
   if (rateStatus==='loading') el.textContent='正在获取汇率…';
   else if (rateStatus==='error') el.textContent='汇率获取失败 · 点此重试';
   else if (rateStatus==='cached') el.textContent=`1 CNY = ${cnyToSgd.toFixed(4)} SGD · 缓存 ${rateDate}`;
@@ -1004,7 +1005,7 @@ document.querySelector('.page-shell').addEventListener('click',async event=>{
   if(gallery){
     const item=listings.find(x=>x.id===gallery.dataset.id);
     const count=(Array.isArray(item?.images)?item.images:(item?.image?[item.image]:[])).length;
-    if(item&&count>1){galleryIndexes.set(item.id,((galleryIndexes.get(item.id)||0)+Number(gallery.dataset.galleryStep)+count)%count);render();}
+    if(item&&count>1){galleryIndexes.set(item.id,((galleryIndexes.get(item.id)||0)+Number(gallery.dataset.galleryStep)+count)%count);render();document.querySelector(`.gallery-button[data-gallery-step="${gallery.dataset.galleryStep}"]`)?.focus({preventScroll:true});}
     return;
   }
   const edit=event.target.closest('.edit-button');
@@ -1043,6 +1044,7 @@ document.querySelector('#detailView').addEventListener('touchend',event=>{
 imageSizeToggle.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('load',()=>{imageDimensions.textContent=`${fullSizeImage.naturalWidth} × ${fullSizeImage.naturalHeight} px`;});
+fullSizeImage.addEventListener('error',()=>{imageDimensions.textContent='图片加载失败，可切换其他照片或关闭重试';});
 previousViewerImage.addEventListener('click',()=>stepViewerImage(-1));
 nextViewerImage.addEventListener('click',()=>stepViewerImage(1));
 imageDialog.addEventListener('keydown',event=>{
