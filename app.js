@@ -7,7 +7,9 @@ const LISTINGS_URL = './listings.json';
 const DELETED_LISTINGS_URL = './deleted-listings.json';
 const GITHUB_API_ROOT = 'https://api.github.com/repos/BENGBENGBENG7/macbook-flip-calculator';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
-const SYNCED_LISTING_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+// No age-based expiry: listings.json is curated by the watch (sold/delisted items
+// are removed there), so a listing must stay visible until the watch removes it.
+// (An earlier 3-day TTL silently hid still-for-sale machines.)
 function loadRateCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(RATE_CACHE_KEY)||'null');
@@ -216,36 +218,14 @@ function loadExpiredSyncIds() {
 }
 function saveExpiredSyncIds(ids) { localStorage.setItem(EXPIRED_SYNC_IDS_KEY, JSON.stringify([...ids])); }
 function pruneExpiredListings(now=Date.now()) {
-  const expiredIds = loadExpiredSyncIds();
-  let removed = 0;
-  let newExpiredId = false;
-  listings = listings.filter(item => {
-    if (!item.syncManaged) return true;
-    const id = listingKey(item);
-    const firstSeenAt = timestamp(item.firstSeenAt || item.createdAt || item.created_at, now);
-    item.firstSeenAt = firstSeenAt;
-    if (expiredIds.has(id) || now - firstSeenAt >= SYNCED_LISTING_TTL_MS) {
-      if (!expiredIds.has(id)) { expiredIds.add(id); newExpiredId = true; }
-      removed += 1;
-      return false;
-    }
-    return true;
-  });
-  if (removed) saveListings();
-  if (newExpiredId) saveExpiredSyncIds(expiredIds);
-  return removed;
+  // No-op by design: no age-based expiry (see note where the TTL used to be).
+  // Listings leave the tool only when the watch removes them from listings.json,
+  // or when the user deletes them. Kept so existing callers keep working.
+  return 0;
 }
 function scheduleExpiryCheck() {
-  if (expiryTimer) clearTimeout(expiryTimer);
-  const expiries = listings
-    .filter(item => item.syncManaged)
-    .map(item => timestamp(item.firstSeenAt || item.createdAt, Date.now()) + SYNCED_LISTING_TTL_MS);
-  if (!expiries.length) return;
-  const delay = Math.max(1000, Math.min(...expiries) - Date.now() + 20);
-  expiryTimer = setTimeout(() => {
-    if (pruneExpiredListings()) render();
-    scheduleExpiryCheck();
-  }, delay);
+  // No-op by design: no age-based expiry (see pruneExpiredListings).
+  return;
 }
 function esc(value='') { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(value, currency='SGD') {
@@ -415,11 +395,6 @@ async function syncListings() {
       const item = preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
       const id = listingKey(item);
       if (allDeletedIds.has(id) || userDeletedIds.has(id)) continue;
-      const wasExpired = expiredIds.has(id);
-      if (wasExpired || now - timestamp(item.firstSeenAt, now) >= SYNCED_LISTING_TTL_MS) {
-        if (!wasExpired) { expiredIds.add(id); expiredCount += 1; }
-        continue;
-      }
       synced.push(item);
     }
     saveExpiredSyncIds(expiredIds);
