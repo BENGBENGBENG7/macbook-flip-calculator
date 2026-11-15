@@ -291,6 +291,7 @@ function updateAmountToggle(button) {
   }
 }
 function safeUrl(value) {
+  if (typeof value === 'string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(value.trim())) return value.trim();
   try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) ? url.href : ''; }
   catch { return ''; }
 }
