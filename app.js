@@ -280,7 +280,7 @@ function calc(item) {
   const purchaseSgd = fx ? (Number(item.priceCny)||0) * fx : NaN;
   const xianyuShippingCny = isXianyu(item.platform) ? 150 : 0;
   const shippingCny = fx ? xianyuShippingCny * fx : NaN;
-  const inspectionCny = fx ? 54 * fx : NaN;
+  const inspectionCny = fx ? (isXianyu(item.platform) ? 54 : 0) * fx : NaN;
   const shippingSgd = Number(item.shippingSgd)||0;
   const repairSgd = Number(item.repairSgd)||0;
   const rate = (Number(item.feePercent)||0)/100;
@@ -500,14 +500,14 @@ function renderDetail(item) {
       <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
       <section class="detail-section"><h3 class="section-title">费用明细 <small>点击金额切换 CNY / SGD</small></h3><div class="cost-list">
         <div class="cost-row"><span>商品价格</span><span>${amountFromCny(Number(item.priceCny||0),'SGD')}</span></div>
-        <div class="cost-row"><span>${isXianyu(item.platform)?'闲鱼运费':'闲鱼运费 · Carousell 不适用'}</span><span>${amountFromSgd(c.shippingCny,'SGD')}</span></div>
-        <div class="cost-row"><span>验货宝</span><span>${amountFromCny(54,'SGD')}</span></div>
+        ${isXianyu(item.platform) ? `<div class="cost-row"><span>闲鱼运费</span><span>${amountFromSgd(c.shippingCny,'SGD')}</span></div>
+        <div class="cost-row"><span>验货宝</span><span>${amountFromSgd(c.inspectionCny,'SGD')}</span></div>` : `<div class="cost-row"><span>本地自提（无闲鱼运费、无验货宝）</span><span>$0</span></div>`}
         <div class="cost-row"><span>跨境运输</span><span>${amountFromSgd(c.shippingSgd,'SGD')}</span></div>
         <div class="cost-row"><span>维修 / 整备</span><span>${amountFromSgd(c.repairSgd,'SGD')}</span></div>
         <div class="cost-row"><span>平台费 · ${(Number(item.feePercent)||0).toFixed(1)}%（随成交价变化）</span><span>${amountRangeFromSgd(c.low*c.rate,c.high*c.rate,'SGD')}</span></div>
         <div class="cost-row total"><span>预计总成本（含平台费）</span><span>${amountRangeFromSgd(totalFeeLow,totalFeeHigh,'SGD')}</span></div>
       </div><p class="price-source"><b>成交参考：</b>${sold?`<a class="sold-source" href="${esc(sold)}" target="_blank" rel="noopener">${esc(item.soldSource)} ↗</a>`:esc(item.soldSource || '请填写已成交记录来源')}<br>请使用近期同配置真实成交记录；工具按录入区间估算，不抓取平台在售标价。</p></section>
-      <div class="card-footer"><div class="max-buy"><small>最高建议买价 · 含目标利润 ${amountFromSgd(Number(item.targetProfit)||0,'SGD')}</small><strong>${amountFromCny(c.maxBuyCny,'CNY')}</strong></div><div class="card-actions"><button class="quiet-button edit-button" data-id="${esc(item.id)}">编辑</button><button class="quiet-button delete delete-button" data-id="${esc(item.id)}">删除</button></div></div>
+      <div class="card-footer"><div class="max-buy"><small>最高建议买价 · 含目标利润 ${amountFromSgd(Number(item.targetProfit)||0,'SGD')}</small><strong>${amountFromCny(c.maxBuyCny,/carousell/i.test(item.platform || '') ? 'SGD' : 'CNY')}</strong></div><div class="card-actions"><button class="quiet-button edit-button" data-id="${esc(item.id)}">编辑</button><button class="quiet-button delete delete-button" data-id="${esc(item.id)}">删除</button></div></div>
     </div>
   </article>`;
 }
