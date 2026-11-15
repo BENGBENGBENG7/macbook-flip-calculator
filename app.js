@@ -1,16 +1,24 @@
 const STORAGE_KEY = 'macbook-flip-listings-v1';
 const EXPIRED_SYNC_IDS_KEY = 'macbook-flip-expired-listings-v1';
 const USER_DELETED_IDS_KEY = 'macbook-flip-user-deleted-listings-v1';
+const RATE_CACHE_KEY = 'macbook-flip-cny-sgd-rate-v1';
 const RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD';
 const LISTINGS_URL = './listings.json';
 const DELETED_LISTINGS_URL = './deleted-listings.json';
 const GITHUB_API_ROOT = 'https://api.github.com/repos/BENGBENGBENG7/macbook-flip-calculator';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
 const SYNCED_LISTING_TTL_MS = 5 * 24 * 60 * 60 * 1000;
+function loadRateCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(RATE_CACHE_KEY)||'null');
+    return cached && Number(cached.rate)>0 ? {rate:Number(cached.rate),date:String(cached.date||'')} : null;
+  } catch { return null; }
+}
+const cachedRate = loadRateCache();
 let listings = loadListings();
-let cnyToSgd = null;
-let rateDate = '';
-let rateStatus = 'loading';
+let cnyToSgd = cachedRate?.rate || null;
+let rateDate = cachedRate?.date || '';
+let rateStatus = cachedRate ? 'cached' : 'loading';
 let syncStatus = '正在同步巡查数据…';
 let expiryTimer = null;
 let selectedListingId = null;
@@ -545,17 +553,26 @@ function updateRateText() {
   const el = document.querySelector('#rateText');
   if (rateStatus==='loading') el.textContent='正在获取汇率…';
   else if (rateStatus==='error') el.textContent='汇率获取失败 · 点此重试';
+  else if (rateStatus==='cached') el.textContent=`1 CNY = ${cnyToSgd.toFixed(4)} SGD · 缓存 ${rateDate}`;
   else el.textContent=`1 CNY = ${cnyToSgd.toFixed(4)} SGD · ${rateDate}`;
 }
 async function fetchRate() {
   rateStatus='loading'; updateRateText();
   try {
-    const response = await fetch(RATE_URL, {cache:'no-store'});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
+    let data;
+    if (window.macbookFlip?.fetchExchangeRate) data = await window.macbookFlip.fetchExchangeRate();
+    else {
+      const response = await fetch(RATE_URL, {cache:'no-store'});
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      data = await response.json();
+    }
     if (!data.rates?.SGD || !data.date) throw new Error('汇率数据格式不正确');
     cnyToSgd=data.rates.SGD; rateDate=data.date; rateStatus='ok';
-  } catch (error) { rateStatus='error'; console.error('汇率加载失败',error); }
+    try { localStorage.setItem(RATE_CACHE_KEY,JSON.stringify({rate:cnyToSgd,date:rateDate})); } catch {}
+  } catch (error) {
+    rateStatus=cnyToSgd&&rateDate?'cached':'error';
+    console.error('汇率加载失败',error);
+  }
   updateRateText(); render();
 }
 function openDetail(id) {
