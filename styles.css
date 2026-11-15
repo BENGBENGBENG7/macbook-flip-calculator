@@ -203,3 +203,8 @@
   .listing-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
   .detail-cover .card-image-button img{max-height:60vh}
 }
+
+/* 首页卡片图片统一高度：固定 4:3 比例裁剪填充，避免同一行图片高矮不一 */
+.feed-image{aspect-ratio:4/3;min-height:0}
+.feed-image img{width:100%;height:100%;object-fit:cover}
+.feed-image-empty{min-height:0}
