@@ -459,7 +459,9 @@ function listingPriceLabel(item,c) {
   return item.platform === 'Carousell' ? amountFromSgd(c.purchaseSgd,'SGD') : amountFromCny(Number(item.priceCny||0),'CNY');
 }
 function suggestedBuyLabel(item,c) {
-  return amountFromCny(c.maxBuyCny,item.platform === 'Carousell' ? 'SGD' : 'CNY');
+  const askCny = Number(item.priceCny)||0;
+  const capped = Number.isFinite(c.maxBuyCny) && askCny > 0 ? Math.min(c.maxBuyCny, askCny) : c.maxBuyCny;
+  return amountFromCny(capped,item.platform === 'Carousell' ? 'SGD' : 'CNY');
 }
 function soldReference(item,c) {
   if (!(c.low > 0 || c.high > 0)) return '';
@@ -516,7 +518,7 @@ function renderDetail(item) {
     ${image ? `<div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">查看原图 ↗</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
     <div class="card-content detail-card-content">
       <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2>${esc(item.description || '未命名商品')}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
-      <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
+      <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong>${Number.isFinite(c.maxBuyCny) && Number(item.priceCny) > 0 && c.maxBuyCny > Number(item.priceCny) ? '<small>挂价已低于可接受上限，按挂价买即可</small>' : ''}</div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
       <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span></p>
       <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(item.seller || '')}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">复制</span></button></p>
       ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
