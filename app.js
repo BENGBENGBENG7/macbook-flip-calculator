@@ -7,7 +7,7 @@ const LISTINGS_URL = './listings.json';
 const DELETED_LISTINGS_URL = './deleted-listings.json';
 const GITHUB_API_ROOT = 'https://api.github.com/repos/BENGBENGBENG7/macbook-flip-calculator';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
-const SYNCED_LISTING_TTL_MS = 5 * 24 * 60 * 60 * 1000;
+const SYNCED_LISTING_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 function loadRateCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(RATE_CACHE_KEY)||'null');
