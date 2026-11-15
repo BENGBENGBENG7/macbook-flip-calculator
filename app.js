@@ -385,7 +385,7 @@ function inferPlatform(platform, url='') {
 function listingKey(item) { return String(item.id || item.itemId || item.goodsId || item.url || item.link || `${item.description || item.title || ''}|${item.priceCny || item.price || ''}`); }
 function sellerNameOnly(value) {
   const leading = String(value || '').split(/[·|｜]/, 1)[0].trim();
-  return leading.replace(/\s*[（(](?=[^）)]*(?:已验证|评价|信用|信誉|评分|好评|\d(?:\.\d)?\s*分))[^）)]*[）)]\s*/gi, '').trim();
+  return leading.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
 }
 function normalizeFeedItem(raw) {
   const item = {...raw};
