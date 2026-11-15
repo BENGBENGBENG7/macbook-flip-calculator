@@ -25,6 +25,7 @@ function loadRateCache() {
 }
 const cachedRate = loadRateCache();
 let listings = loadListings();
+let listingsLoading = !listings.length;
 let cnyToSgd = cachedRate?.rate || null;
 let rateDate = cachedRate?.date || '';
 let rateStatus = cachedRate ? 'cached' : 'loading';
@@ -194,6 +195,7 @@ function updateGithubAuthButton() {
   const label = document.querySelector('#githubAuthText');
   const button = document.querySelector('#githubAuthButton');
   if (label) label.textContent = githubToken ? '云端写入已授权' : '云端写入授权';
+  if (button && label) button.setAttribute('aria-label',`${label.textContent}：同步分析和删除记录`);
   if (button) button.classList.toggle('connected', !!githubToken);
 }
 async function storeGithubToken(token) {
@@ -393,6 +395,7 @@ async function commitRemoteDeletion(item) {
   });
 }
 function openGithubAuthDialog() {
+  clearFormErrors(document.querySelector('#githubTokenForm'));
   const tokenInput = document.querySelector('#githubTokenInput');
   const disconnect = document.querySelector('#disconnectGithub');
   if (tokenInput) tokenInput.value = '';
@@ -436,6 +439,21 @@ function loadStoredValue(key, validValues, fallback) {
   } catch { return fallback; }
 }
 function esc(value='') { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uiIcon(name) {
+  const paths = {
+    exchange: '<path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4"/>',
+    left: '<path d="m14 6-6 6 6 6"/>',
+    right: '<path d="m10 6 6 6-6 6"/>',
+    external: '<path d="M14 4h6v6M20 4 10 14"/><path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5"/>',
+    copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/>',
+    photo: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 16 5-5 5 5 3-3 5 5"/>'
+  };
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.photo}</svg>`;
+}
+function listingHeadline(item) {
+  const parts = [item.size, item.chip, [item.memory, item.storage].filter(Boolean).join(' / ')].filter(Boolean);
+  return parts.length > 1 ? parts.join(' · ') : (item.description || 'MacBook 商品详情');
+}
 function money(value, currency='SGD') {
   if (!Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('zh-SG', {style:'currency',currency,maximumFractionDigits:0}).format(value);
@@ -449,7 +467,7 @@ function amountToggle(cny, sgd, currency='SGD', className='') {
   }
   const value = currency === 'CNY' ? Number(cny) : Number(sgd);
   const unit = currency === 'CNY' ? 'CNY' : 'SGD';
-  return `<button type="button" class="money-toggle ${className}" data-cny="${Number(cny)}" data-sgd="${Number(sgd)}" data-currency="${currency}" title="点击切换人民币 / 新币">${money(value,unit)}<span aria-hidden="true">↔</span></button>`;
+  return `<button type="button" class="money-toggle ${className}" data-cny="${Number(cny)}" data-sgd="${Number(sgd)}" data-currency="${currency}" title="点击切换人民币 / 新币">${money(value,unit)}${uiIcon('exchange')}</button>`;
 }
 function amountFromCny(cny, currency='CNY', className='') {
   const value = Number(cny);
@@ -466,16 +484,16 @@ function amountRangeFromSgd(low, high, currency='SGD', className='') {
   const lowCny = lowValue/cnyToSgd, highCny = highValue/cnyToSgd;
   const left = currency === 'CNY' ? money(lowCny,'CNY') : money(lowValue,'SGD');
   const right = currency === 'CNY' ? money(highCny,'CNY') : money(highValue,'SGD');
-  return `<button type="button" class="money-toggle money-range-toggle ${className}" data-low-cny="${lowCny}" data-high-cny="${highCny}" data-low-sgd="${lowValue}" data-high-sgd="${highValue}" data-currency="${currency}" title="点击切换人民币 / 新币">${left} – ${right}<span aria-hidden="true">↔</span></button>`;
+  return `<button type="button" class="money-toggle money-range-toggle ${className}" data-low-cny="${lowCny}" data-high-cny="${highCny}" data-low-sgd="${lowValue}" data-high-sgd="${highValue}" data-currency="${currency}" title="点击切换人民币 / 新币">${left} – ${right}${uiIcon('exchange')}</button>`;
 }
 function updateAmountToggle(button) {
   const currency = button.dataset.currency === 'CNY' ? 'SGD' : 'CNY';
   button.dataset.currency = currency;
   if (button.classList.contains('money-range-toggle')) {
     const cny = currency === 'CNY';
-    button.innerHTML = `${money(Number(button.dataset[cny?'lowCny':'lowSgd']),cny?'CNY':'SGD')} – ${money(Number(button.dataset[cny?'highCny':'highSgd']),cny?'CNY':'SGD')}<span aria-hidden="true">↔</span>`;
+    button.innerHTML = `${money(Number(button.dataset[cny?'lowCny':'lowSgd']),cny?'CNY':'SGD')} – ${money(Number(button.dataset[cny?'highCny':'highSgd']),cny?'CNY':'SGD')}${uiIcon('exchange')}`;
   } else {
-    button.innerHTML = `${money(Number(button.dataset[currency.toLowerCase()]),currency)}<span aria-hidden="true">↔</span>`;
+    button.innerHTML = `${money(Number(button.dataset[currency.toLowerCase()]),currency)}${uiIcon('exchange')}`;
   }
 }
 function safeUrl(value) {
@@ -554,6 +572,8 @@ function preserveAnalysis(incoming, existing, cloudAnalysis, legacyAnalysis) {
 }
 function updateSyncText(text) {
   syncStatus = text;
+  const status = document.querySelector('.sync-label');
+  if (status) status.dataset.state = /失败|不可用/.test(text) ? 'error' : /正在|等待/.test(text) ? 'loading' : 'ready';
   const element = document.querySelector('#syncText');
   if (element) element.textContent = text;
 }
@@ -624,6 +644,7 @@ async function syncListings() {
     }
     const manual = mergeCloudManualListings(cloudUserData.manualListings,listings.filter(item => !item.syncManaged),userDeletedIds);
     listings = [...manual, ...synced];
+    listingsLoading = false;
     saveListings();
     const cloudManualById=new Map(cloudUserData.manualListings.map(item=>[listingKey(item),item]));
     const needsMigration=[
@@ -645,6 +666,8 @@ async function syncListings() {
   } catch (error) {
     console.error('巡查数据同步失败', error);
     updateSyncText(`巡查数据同步失败 · ${String(error?.message||'网络错误').slice(0,56)}`);
+    listingsLoading = false;
+    render();
     return false;
   }
 }
@@ -681,6 +704,7 @@ function soldReference(item,c) {
 }
 function recommendationTone(score, decision) {
   if (decision === 'red') return 'rec-avoid';
+  if (decision === 'yellow') return 'rec-watch';
   if (score >= 40) return 'rec-best';
   if (score >= 20) return 'rec-good';
   if (score >= 8) return 'rec-watch';
@@ -688,23 +712,24 @@ function recommendationTone(score, decision) {
 }
 function renderCard(item) {
   const c = calc(item);
-  const labels = {green:'可以买',yellow:'谨慎评估',red:'建议不买'};
   const decision = rateStatus === 'error' ? 'yellow' : c.decision;
   const score = recommendation(item, c);
   const recTone = recommendationTone(score, decision);
-  const listing = safeUrl(item.url);
-  const platformLabel = item.platform || '未注明平台';
-  const platformClass = platformStyle(item);
   const images = itemImages(item);
-  const galleryIndex = images.length ? ((galleryIndexes.get(item.id) || 0) % images.length) : 0;
-  const image = images[galleryIndex];
-  const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
-  const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
+  const image = images.length ? images[(galleryIndexes.get(item.id) || 0) % images.length] : '';
+  const description = item.description || '未命名商品';
+  const imageLabel = `查看商品详情：${description}${images.length>1?`，${images.length} 张照片`:''}`;
   return `<article class="listing-card feed-card" data-id="${esc(item.id)}">
-    ${image ? `<button type="button" class="feed-image" data-detail-open data-id="${esc(item.id)}" aria-label="查看商品详情：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')}" loading="lazy" onerror="this.closest('.feed-image').classList.add('image-error')">${images.length>1?`<span class="feed-image-count">${images.length} 张照片</span>`:''}</button>` : `<button type="button" class="feed-image feed-image-empty" data-detail-open data-id="${esc(item.id)}">查看商品详情</button>`}
+    <button type="button" class="feed-image ${image?'':'feed-image-empty'}" data-detail-open data-id="${esc(item.id)}" aria-label="${esc(imageLabel)}">
+      ${image?`<img src="${esc(image)}" alt="${esc(description)}" loading="lazy" onerror="this.closest('.feed-image').classList.add('image-error')">`:''}
+      <span class="image-fallback" aria-hidden="true">${uiIcon('photo')}<span>查看商品详情</span></span>
+      ${images.length>1?`<span class="feed-image-count">${uiIcon('photo')}${images.length} 张照片</span>`:''}
+    </button>
     <div class="feed-card-content">
-      <button type="button" class="feed-title" data-detail-open data-id="${esc(item.id)}"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><span>${esc(item.description || '未命名商品')}</span></button>
-      <div class="feed-price-row"><div class="feed-price asking"><small>挂价</small><strong>${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div class="feed-price target"><small>建议购入</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></div></div>
+      <div class="feed-meta-row"><span class="platform-badge ${platformStyle(item)}">${esc(item.platform||'未注明平台')}</span><span class="recommend-score ${recTone}" title="推荐指数按利润率与成交样本量估算，用于相对比较"><small>推荐</small><strong>${score}<small>%</small></strong></span></div>
+      <button type="button" class="feed-title" data-detail-open data-id="${esc(item.id)}" title="${esc(description)}">${esc(description)}</button>
+      <div class="feed-price-row"><div class="feed-price asking"><small>商品挂价</small><strong>${listingPriceLabel(item,c)}</strong></div><div class="feed-price target"><small>建议购入</small><strong>${suggestedBuyLabel(item,c)}</strong></div></div>
+      <div class="feed-sold-reference">${soldReference(item,c)}</div>
       <div class="feed-profit"><span>预计利润</span><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div>
     </div>
   </article>`;
@@ -724,16 +749,17 @@ function renderDetail(item) {
   const recTone = recommendationTone(score, decision);
   const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
   const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
-  return `<div class="detail-page-nav"><button type="button" class="back-button" id="backToFeed">‹ <span>返回巡查列表</span></button><span>商品详情</span></div>
+  return `<div class="detail-page-nav"><button type="button" class="back-button" id="backToFeed">${uiIcon('left')}<span>返回巡查列表</span></button><span>商品详情</span></div>
   <article class="listing-card detail-card" data-id="${esc(item.id)}">
-    ${image ? `<div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">查看原图 ↗</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
+    ${image ? `<div class="detail-media"><div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">${uiIcon('external')}查看原图</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">${uiIcon('left')}</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">${uiIcon('right')}</button></div></div>` : ''}</div></div>` : ''}
     <div class="card-content detail-card-content">
-      <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2>${esc(item.description || '未命名商品')}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
-      <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong>${Number.isFinite(c.maxBuyCny) && Number(item.priceCny) > 0 && c.maxBuyCny > Number(item.priceCny) ? '<small>挂价已低于可接受上限，按挂价买即可</small>' : ''}</div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
-      <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span></p>
-      <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(sellerNameOnly(item.sellerName || item.nickname || item.username || item.seller || ''))}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">复制</span></button></p>
-      ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
-      <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
+      <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2 tabindex="-1">${esc(listingHeadline(item))}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
+      <div class="price-comparison"><div class="asking-cell"><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong></div><div><small>建议购入价</small><strong class="buy-price">${suggestedBuyLabel(item,c)}</strong>${Number.isFinite(c.maxBuyCny) && Number(item.priceCny)>0 && c.maxBuyCny>Number(item.priceCny)?'<small class="buy-note">挂价已低于可接受上限，按挂价买即可</small>':''}</div><div class="comparison-reference">${soldReference(item,c)}</div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
+      <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>${esc(item.sampleCount || 1)} 个成交样本 · 按利润率与样本量排序，不代表成交概率${decision==='yellow'?'；样本或利润仍需核实':''}</span></p>
+      <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(sellerNameOnly(item.sellerName || item.nickname || item.username || item.seller || ''))}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">${uiIcon('copy')}复制</span></button></p>
+      ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">${uiIcon('external')}</span></a>`:''}
+      <section class="detail-section"><h3 class="section-title">商品原描述</h3><p class="original-description">${esc(item.description || '未填写')}</p></section>
+      <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles !== '' && item.cycles !== undefined && item.cycles !== null ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
       <section class="detail-section"><h3 class="section-title">费用明细 <small>点击金额切换 CNY / SGD</small></h3><div class="cost-list">
         <div class="cost-row"><span>商品价格</span><span>${amountFromCny(Number(item.priceCny||0),'SGD')}</span></div>
         ${isXianyu(item.platform) ? `<div class="cost-row"><span>闲鱼运费</span><span>${amountFromSgd(c.shippingCny,'SGD')}</span></div>
@@ -750,6 +776,7 @@ function renderDetail(item) {
 function render() {
   const sort = document.querySelector('#sortMode').value;
   const filter = document.querySelector('#platformFilter').value;
+  document.querySelectorAll('[data-platform-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.platformFilter===filter)));
   const filtered = listings.filter(item => filter==='all' || (filter==='xianyu' ? isXianyu(item.platform) : /carousell/i.test(item.platform||'')));
   const sorted = [...filtered].sort((a,b) => {
     if (sort === 'date') return b.createdAt-a.createdAt;
@@ -761,12 +788,16 @@ function render() {
   grid.hidden = !!selected;
   document.querySelector('#detailView').hidden = !selected;
   document.querySelector('#detailView').innerHTML = selected ? renderDetail(selected) : '';
-  grid.innerHTML = selected ? '' : sorted.map(renderCard).join('');
+  grid.innerHTML = selected ? '' : sorted.length ? sorted.map(renderCard).join('') : listingsLoading ? Array.from({length:3},()=>'<article class="listing-card feed-skeleton" aria-hidden="true"><div class="skeleton-image"></div><div class="skeleton-content"><div class="skeleton-line short"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></article>').join('') : '';
+  grid.setAttribute('aria-busy',String(listingsLoading));
   document.querySelector('#listingCount').textContent = `${filtered.length} 台商品`;
   const emptyState=document.querySelector('#emptyState');
-  emptyState.classList.toggle('visible', filtered.length===0 && !selected);
+  emptyState.classList.toggle('visible', filtered.length===0 && !selected && !listingsLoading);
+  document.querySelector('#emptyResetFilter').hidden = !(filtered.length===0 && listings.length>0);
+  document.querySelector('#emptySyncNow').hidden = filtered.length===0 && listings.length>0;
+  document.querySelector('#emptyStateDescription').textContent = listings.length>0 ? '切换到全部平台，继续查看其他巡查商品。' : /失败/.test(syncStatus) ? '暂时无法读取云端数据。请检查网络，再同步一次；已有本机数据会保留。' : '同步巡查，读取 GitHub 中的商品和个人分析。';
   if(filtered.length===0 && listings.length>0){emptyState.querySelector('h2').textContent='这个平台暂无巡查商品';}
-  else if(!selected){emptyState.querySelector('h2').textContent='暂时没有巡查商品';}
+  else if(!selected){emptyState.querySelector('h2').textContent=/失败/.test(syncStatus)?'巡查数据暂时无法读取':'暂时没有巡查商品';}
 }
 function updateRateText() {
   const el = document.querySelector('#rateText');
@@ -801,12 +832,17 @@ function openDetail(id) {
   }
   selectedListingId = id;
   render();
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,behavior:'instant'});
+  document.querySelector('.detail-heading h2')?.focus({preventScroll:true});
 }
 function restoreFeed() {
+  const previousId=selectedListingId;
   selectedListingId = null;
   render();
-  requestAnimationFrame(()=>window.scrollTo({top:feedScrollY,behavior:'instant'}));
+  requestAnimationFrame(()=>{
+    [...grid.querySelectorAll('.feed-title')].find(button=>button.dataset.id===previousId)?.focus({preventScroll:true});
+    window.scrollTo({top:feedScrollY,behavior:'instant'});
+  });
 }
 function returnToFeed() {
   if (!selectedListingId) return;
@@ -815,6 +851,8 @@ function returnToFeed() {
 }
 function openForm(item) {
   form.reset();
+  form.querySelector('.metadata-editor').open=false;
+  clearFormErrors(form);
   document.querySelector('#listingId').value=item?.id||'';
   document.querySelector('#dialogTitle').textContent=item?'编辑商品':'添加商品';
   const defaults={platform:'闲鱼',shippingSgd:35,repairSgd:0,feePercent:0,targetProfit:150,sampleCount:1};
@@ -825,6 +863,17 @@ function openForm(item) {
   }
   dialog.showModal();
 }
+document.querySelectorAll('[data-platform-filter]').forEach(button=>button.addEventListener('click',()=>{
+  const select=document.querySelector('#platformFilter');
+  select.value=button.dataset.platformFilter;
+  select.dispatchEvent(new Event('change'));
+}));
+document.querySelector('#emptyResetFilter').addEventListener('click',()=>document.querySelector('[data-platform-filter="all"]').click());
+document.querySelector('#emptySyncNow').addEventListener('click',()=>document.querySelector('#syncNow').click());
+const updateHeaderHeight=()=>document.documentElement.style.setProperty('--header-height',`${document.querySelector('.topbar').getBoundingClientRect().height}px`);
+if(window.ResizeObserver)new ResizeObserver(updateHeaderHeight).observe(document.querySelector('.topbar'));
+else window.addEventListener('resize',updateHeaderHeight);
+updateHeaderHeight();
 document.querySelector('#closeDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#cancelDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#sortMode').value=currentSortMode;
@@ -875,7 +924,8 @@ document.querySelector('#githubTokenForm').addEventListener('submit',async event
   event.preventDefault();
   const button=document.querySelector('#saveGithubToken');
   const token=document.querySelector('#githubTokenInput').value.trim();
-  if(!token){toast('请先粘贴 GitHub 令牌');return;}
+  clearFormErrors(document.querySelector('#githubTokenForm'));
+  if(!token){showFormError(document.querySelector('#githubTokenForm'),'请先粘贴 GitHub 令牌','githubTokenInput');return;}
   button.disabled=true;
   button.textContent='正在验证…';
   try{
@@ -884,7 +934,7 @@ document.querySelector('#githubTokenForm').addEventListener('submit',async event
     githubTokenDialog.close();
     toast('GitHub 仓库已连接');
     if(pendingDeleteId)await performRemoteDelete(pendingDeleteId);
-  }catch(error){toast(error.message);}
+  }catch(error){showFormError(document.querySelector('#githubTokenForm'),error.message,'githubTokenInput');}
   finally{button.disabled=false;button.textContent='连接';}
 });
 githubTokenDialog.addEventListener('close',()=>{
@@ -962,12 +1012,21 @@ document.querySelector('.page-shell').addEventListener('click',async event=>{
   if(edit){const item=listings.find(x=>x.id===edit.dataset.id);if(item)openForm(item);}
   if(remove){
     const item=listings.find(x=>x.id===remove.dataset.id);
-    if(!item||!window.confirm(`确定删除这条商品吗？\n\n“${item.description||'未命名商品'}”会从 GitHub 巡查列表移除，并在其他设备下次同步时删除。`))return;
-    if(githubTokenLoading)await loadGithubToken();
-    pendingDeleteId=item.id;
-    if(!githubToken){openGithubAuthDialog();return;}
-    await performRemoteDelete(item.id);
+    if(!item)return;
+    document.querySelector('#deleteItemTitle').textContent=listingHeadline(item);
+    document.querySelector('#deleteConfirmDialog').dataset.listingId=item.id;
+    document.querySelector('#deleteConfirmDialog').showModal();
   }
+});
+document.querySelector('#cancelDelete').addEventListener('click',()=>document.querySelector('#deleteConfirmDialog').close());
+document.querySelector('#confirmDelete').addEventListener('click',async()=>{
+  const modal=document.querySelector('#deleteConfirmDialog');
+  const id=modal.dataset.listingId;
+  modal.close();
+  if(githubTokenLoading)await loadGithubToken();
+  pendingDeleteId=id;
+  if(!githubToken){openGithubAuthDialog();return;}
+  await performRemoteDelete(id);
 });
 window.addEventListener('popstate',()=>{if(selectedListingId)restoreFeed();});
 let detailSwipeStart=null;
@@ -995,13 +1054,16 @@ imageDialog.addEventListener('click',event=>{if(event.target===imageDialog)image
 imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');viewerImages=[];});
 form.addEventListener('submit',event=>{
   event.preventDefault();
+  clearFormErrors(form);
+  const invalid=[...form.elements].find(input=>input.willValidate && !input.validity.valid);
+  if(invalid){showFormError(form,invalid.validationMessage,invalid.name);return;}
   const data=Object.fromEntries(new FormData(form).entries());
   const enteredImages=String(data.images||'').split(/\r?\n/).map(url=>url.trim()).filter(Boolean);
-  if(enteredImages.length>10){toast('每台机器最多录入 10 张图片');return;}
+  if(enteredImages.length>10){showFormError(form,'每台机器最多录入 10 张图片，请删除多余的链接。','images');return;}
   data.images=[...new Set(enteredImages)]; data.image=data.images[0]||'';
   delete data.imagesText;
   for(const key of ['priceCny','saleLow','saleHigh','sampleCount','cycles','shippingSgd','repairSgd','feePercent','targetProfit']) data[key]=data[key]===''?0:Number(data[key]);
-  if(data.saleLow>data.saleHigh){toast('成交低价不能高于高价');return;}
+  if(data.saleLow>data.saleHigh){showFormError(form,'成交低价不能高于高价，请调整两个金额。','saleLow');return;}
   const index=listings.findIndex(item=>item.id===data.id);
   const now=Date.now();
   data.id=data.id||crypto.randomUUID(); data.createdAt=index>=0?listings[index].createdAt:now; data.firstSeenAt=index>=0?(listings[index].firstSeenAt||listings[index].createdAt||now):now; data.syncManaged=index>=0?!!listings[index].syncManaged:false;
@@ -1009,7 +1071,29 @@ form.addEventListener('submit',event=>{
   if(index>=0)listings[index]=data;else listings.push(data);
   saveListings();render();dialog.close();void pushCloudChanges([data]);
 });
-function toast(message){const el=document.createElement('div');el.className='toast';el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),2200);}
+function clearFormErrors(targetForm) {
+  targetForm.querySelectorAll('[aria-invalid]').forEach(input=>{input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');});
+  const error=targetForm.querySelector('[data-form-error]');
+  if(error)error.textContent='';
+}
+function showFormError(targetForm,message,field) {
+  const error=targetForm.querySelector('[data-form-error]');
+  if(error)error.textContent=message;
+  const input=field?targetForm.elements.namedItem(field):null;
+  if(input){
+    const disclosure=input.closest('details');if(disclosure)disclosure.open=true;
+    input.setAttribute('aria-invalid','true');
+    if(error){input.setAttribute('aria-describedby',error.id);const label=input.closest('label');if(label)label.append(error);else input.after(error);}
+    input.focus({preventScroll:true});input.scrollIntoView({block:'center'});
+  } else if(error)error.scrollIntoView({block:'nearest'});
+}
+function toast(message) {
+  const el=document.createElement('div');
+  el.className='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.textContent=message;
+  const openDialog=[...document.querySelectorAll('dialog[open]')].at(-1);
+  (openDialog||document.body).append(el);
+  setTimeout(()=>el.remove(),3500);
+}
 render(); loadGithubToken(); fetchRate();
 void restoreListingsFromIndexedDB().finally(()=>syncListings());
 setInterval(syncListings, SYNC_INTERVAL_MS);

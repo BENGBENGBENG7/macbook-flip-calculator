@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title description">
-  <title id="title">Macbook flip — Rounded Corners and Notch</title>
-  <desc id="description">Bright green rounded app icon with a minimal white MacBook display outline, gently rounded corners, a centred notch, and one rounded baseline.</desc>
+  <title id="title">Macbook flip</title>
+  <desc id="description">Green and white MacBook identity with an optically balanced rounded bezel, display notch, and a shallow soft laptop base. Rounded white MacBook mark, retaining the approved green palette.</desc>
   <defs>
     <linearGradient id="green" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
       <stop stop-color="#46E45A"/>
@@ -9,7 +9,7 @@
     </linearGradient>
   </defs>
   <rect id="app-background" width="1024" height="1024" rx="230" fill="url(#green)"/>
-  <rect x="254" y="290" width="516" height="356" rx="48" stroke="#FFFFFF" stroke-width="36"/>
-  <path d="M468 290H556V304C556 316.15 546.15 326 534 326H490C477.85 326 468 316.15 468 304V290Z" fill="#FFFFFF"/>
-  <path d="M198 716H826" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+  <rect x="222" y="278" width="580" height="380" rx="62" stroke="#FFFFFF" stroke-width="60"/>
+  <path d="M460 278H564V316C564 329.255 553.255 340 540 340H484C470.745 340 460 329.255 460 316V278Z" fill="#FFFFFF"/>
+  <path d="M166 704H450C454.418 704 458.418 706.418 460.473 710.327L462.282 713.769C464.336 717.678 468.337 720.096 472.754 720.096H551.246C555.663 720.096 559.664 717.678 561.718 713.769L563.527 710.327C565.582 706.418 569.582 704 574 704H858C869.196 704 877.005 715.16 873.171 725.68L870.798 732.191C863.408 752.466 844.124 765.965 822.546 765.965H201.454C179.876 765.965 160.592 752.466 153.202 732.191L150.829 725.68C146.995 715.16 154.804 704 166 704Z" fill="#FFFFFF"/>
 </svg>

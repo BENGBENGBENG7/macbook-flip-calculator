@@ -1,0 +1,9 @@
+.design-backups/
+node_modules/
+desktop/node_modules/
+desktop/site/
+desktop/icon.iconset/
+outputs/
+work/
+backups/
+.DS_Store
