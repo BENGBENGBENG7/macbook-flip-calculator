@@ -14,7 +14,7 @@
 - 巡查商品只会在 GitHub 的 `listings.json` 移除或用户手动删除时离开列表，不按时间自动清理。
 - 商品分析、手动添加的商品与删除标记可保存到 GitHub 云端，网页和 Mac App 打开时自动读取；同一账号在多个设备的修改会写到仓库中的 `user-data.json`。
 - 支持导入 / 导出 JSON 个人备份；GitHub 令牌不会包含在备份中。
-- 使用统一的鲜绿色计算器图标作为网页、Mac App 和浏览器添加到主屏幕的图标。
+- 使用统一的绿底白色圆角刘海 MacBook 图标作为网页、Mac App 和浏览器添加到主屏幕的图标。
 
 ## 云端数据与隐私
 
@@ -41,7 +41,7 @@ GitHub Pages 提供在线网页，不依赖这台 Mac 保持开机。只要设�
 
 ## 图标资源
 
-`logo.svg` 是不含位图的矢量源文件。macOS 可在项目目录运行 `swift scripts/export-logo.swift "$PWD"` 重新导出网页图标；Mac App 构建使用同一矢量图生成带留白的 ICNS 图标。iPhone 的 `apple-touch-icon-green.png` 为 180 × 180 不透明满底色 PNG；Web App Manifest 同时提供 192、512 像素和 maskable 图标。
+`logo.svg` 是不含位图的矢量源文件。macOS 可在项目目录运行 `swift scripts/export-logo.swift "$PWD"` 重新导出网页图标；Mac App 构建使用同一矢量图生成带留白的 ICNS 图标。iPhone 的 `apple-touch-icon-macbook.png` 为 180 × 180 不透明满底色 PNG；Web App Manifest 同时提供 192、512 像素和 maskable 图标。
 
 在 Safari 打开网页，选择“分享”→“添加到主屏幕”。已添加过的旧快捷方式可能继续使用系统缓存的旧图标；如果仍显示旧图标，移除该快捷方式后重新添加。
 

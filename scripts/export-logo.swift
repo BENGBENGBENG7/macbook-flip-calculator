@@ -34,16 +34,21 @@ func export(_ svg: String, _ name: String, _ size: Int) throws {
 
 try export(source, "logo-source.png", 1024)
 try export(source, "favicon-green.png", 64)
+try export(source, "favicon-macbook.png", 64)
 try export(opaque, "apple-touch-icon-green.png", 180)
 try export(opaque, "apple-touch-icon.png", 180)
+try export(opaque, "apple-touch-icon-macbook.png", 180)
 try export(opaque, "icon-green-192.png", 192)
 try export(opaque, "icon-192.png", 192)
+try export(opaque, "icon-macbook-192.png", 192)
 try export(opaque, "icon-green-512.png", 512)
 try export(opaque, "icon-512.png", 512)
+try export(opaque, "icon-macbook-512.png", 512)
 try export(opaque, "icon-green-maskable-512.png", 512)
+try export(opaque, "icon-macbook-maskable-512.png", 512)
 let desktop = project.appendingPathComponent("desktop", isDirectory: true)
 if FileManager.default.fileExists(atPath: desktop.path) {
     try mac.write(to: desktop.appendingPathComponent("icon.svg"), atomically: true, encoding: .utf8)
     try export(mac, "desktop/icon-1024.png", 1024)
 }
-print("Exported green calculator icons from logo.svg")
+print("Exported Macbook flip icons from logo.svg")
