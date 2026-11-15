@@ -2,6 +2,7 @@ const STORAGE_KEY = 'macbook-flip-listings-v1';
 const LISTINGS_DB_NAME = 'macbook-flip-local-cache';
 const LISTINGS_DB_STORE = 'snapshots';
 const USER_DELETED_IDS_KEY = 'macbook-flip-user-deleted-listings-v1';
+const LEGACY_USER_ANALYSIS_KEY = 'macbook-flip-user-analysis-v1';
 const RATE_CACHE_KEY = 'macbook-flip-cny-sgd-rate-v1';
 const PLATFORM_FILTER_KEY = 'macbook-flip-platform-filter-v1';
 const SORT_MODE_KEY = 'macbook-flip-sort-mode-v1';
@@ -118,6 +119,12 @@ function loadUserDeletedIds() {
     const ids = JSON.parse(localStorage.getItem(USER_DELETED_IDS_KEY) || '[]');
     return new Set(Array.isArray(ids) ? ids.map(String) : []);
   } catch { return new Set(); }
+}
+function loadLegacyUserAnalysis() {
+  try {
+    const data=JSON.parse(localStorage.getItem(LEGACY_USER_ANALYSIS_KEY)||'{}');
+    return data&&typeof data==='object'&&!Array.isArray(data)?data:{};
+  } catch { return {}; }
 }
 function saveUserDeletedIds(ids) { localStorage.setItem(USER_DELETED_IDS_KEY, JSON.stringify([...ids])); }
 function makeDataBackup() {
@@ -528,17 +535,21 @@ function normalizeFeedItem(raw) {
   item.firstSeenAt = timestamp(item.firstSeenAt || item.first_seen_at || item.discoveredAt || item.discovered_at || item.createdAt, item.createdAt);
   return item;
 }
-function preserveAnalysis(incoming, existing, cloudAnalysis) {
-  const useCloud = !!cloudAnalysis && timestamp(cloudAnalysis.updatedAt,0) >= timestamp(existing?.analysisUpdatedAt,0);
-  const source = useCloud ? cloudAnalysis : existing;
+function preserveAnalysis(incoming, existing, cloudAnalysis, legacyAnalysis) {
+  const candidates=[
+    {data:existing,updatedAt:timestamp(existing?.analysisUpdatedAt,0)},
+    {data:legacyAnalysis,updatedAt:timestamp(legacyAnalysis?._updatedAt||legacyAnalysis?.updatedAt,0)},
+    {data:cloudAnalysis,updatedAt:timestamp(cloudAnalysis?.updatedAt,0)},
+  ];
+  const latest=candidates.reduce((best,candidate)=>candidate.data&&candidate.updatedAt>best.updatedAt?candidate:best,{data:null,updatedAt:0});
+  const source=latest.data;
   if (!source) return incoming;
   for (const field of ANALYSIS_FIELDS) if (source[field] !== undefined && source[field] !== '') incoming[field] = source[field];
   if (existing) {
     incoming.createdAt = existing.createdAt || incoming.createdAt;
     incoming.firstSeenAt = timestamp(existing.firstSeenAt || existing.createdAt || incoming.firstSeenAt, incoming.firstSeenAt);
   }
-  const updatedAt = useCloud ? timestamp(cloudAnalysis.updatedAt,0) : timestamp(existing?.analysisUpdatedAt,0);
-  if (updatedAt) incoming.analysisUpdatedAt = updatedAt;
+  if (latest.updatedAt) incoming.analysisUpdatedAt = latest.updatedAt;
   return incoming;
 }
 function updateSyncText(text) {
@@ -598,6 +609,7 @@ async function syncListings() {
     if (cloudResponse?.ok) saveCloudUserDataCache(await cloudResponse.json());
     else if (cloudResponse && cloudResponse.status!==404) console.warn(`云端个人数据暂不可用：HTTP ${cloudResponse.status}；继续使用本机缓存`);
     const currentByKey = new Map(listings.map(item => [listingKey(item), item]));
+    const legacyAnalysisById=loadLegacyUserAnalysis();
     const userDeletedIds = loadUserDeletedIds();
     for (const id of cloudUserData.userDeletedIds) userDeletedIds.add(id);
     for (const id of allDeletedIds) userDeletedIds.add(id);
@@ -606,7 +618,7 @@ async function syncListings() {
     for (const raw of rows.filter(item => item && typeof item === 'object')) {
       const normalized = normalizeFeedItem(raw);
       const id = listingKey(normalized);
-      const item = preserveAnalysis(normalized, currentByKey.get(id),cloudUserData.analysisById[id]);
+      const item = preserveAnalysis(normalized, currentByKey.get(id),cloudUserData.analysisById[id],legacyAnalysisById[id]);
       if (allDeletedIds.has(id) || userDeletedIds.has(id)) continue;
       synced.push(item);
     }
