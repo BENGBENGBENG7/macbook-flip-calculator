@@ -1,7 +1,10 @@
 const STORAGE_KEY = 'macbook-flip-listings-v1';
 const EXPIRED_SYNC_IDS_KEY = 'macbook-flip-expired-listings-v1';
+const USER_DELETED_IDS_KEY = 'macbook-flip-user-deleted-listings-v1';
 const RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD';
 const LISTINGS_URL = './listings.json';
+const DELETED_LISTINGS_URL = './deleted-listings.json';
+const GITHUB_API_ROOT = 'https://api.github.com/repos/BENGBENGBENG7/macbook-flip-calculator';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
 const SYNCED_LISTING_TTL_MS = 5 * 24 * 60 * 60 * 1000;
 let listings = loadListings();
@@ -10,6 +13,10 @@ let rateDate = '';
 let rateStatus = 'loading';
 let syncStatus = '正在同步巡查数据…';
 let expiryTimer = null;
+let selectedListingId = null;
+let githubToken = '';
+let pendingDeleteId = null;
+let githubTokenLoading = true;
 const galleryIndexes = new Map();
 
 const grid = document.querySelector('#listingGrid');
@@ -26,11 +33,11 @@ const nextViewerImage = document.querySelector('#nextViewerImage');
 let viewerImages = [];
 let viewerIndex = 0;
 let viewerDescription = '商品原图';
-let viewerTouchStart = null;
 
 function loadListings() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map(item => ({
+    const deletedIds = loadUserDeletedIds();
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').filter(item => !deletedIds.has(listingKey(item))).map(item => ({
       ...item,
       platform: inferPlatform(item.platform, item.url),
       ...(item.syncManaged ? {firstSeenAt: timestamp(item.firstSeenAt || item.createdAt || item.created_at, Date.now())} : {})
@@ -39,6 +46,155 @@ function loadListings() {
   catch { return []; }
 }
 function saveListings() { localStorage.setItem(STORAGE_KEY, JSON.stringify(listings)); }
+function loadUserDeletedIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(USER_DELETED_IDS_KEY) || '[]');
+    return new Set(Array.isArray(ids) ? ids.map(String) : []);
+  } catch { return new Set(); }
+}
+function saveUserDeletedIds(ids) { localStorage.setItem(USER_DELETED_IDS_KEY, JSON.stringify([...ids])); }
+async function loadGithubToken() {
+  try {
+    githubToken = window.macbookFlip?.getGithubToken
+      ? await window.macbookFlip.getGithubToken()
+      : sessionStorage.getItem('macbook-flip-github-token') || '';
+  } catch { githubToken = ''; }
+  githubTokenLoading = false;
+  updateGithubAuthButton();
+}
+function updateGithubAuthButton() {
+  const label = document.querySelector('#githubAuthText');
+  const button = document.querySelector('#githubAuthButton');
+  if (label) label.textContent = githubToken ? 'GitHub 已连接' : '连接 GitHub';
+  if (button) button.classList.toggle('connected', !!githubToken);
+}
+async function storeGithubToken(token) {
+  if (window.macbookFlip?.setGithubToken) await window.macbookFlip.setGithubToken(token);
+  else sessionStorage.setItem('macbook-flip-github-token', token);
+  githubToken = token;
+  updateGithubAuthButton();
+}
+async function clearGithubToken() {
+  if (window.macbookFlip?.clearGithubToken) await window.macbookFlip.clearGithubToken();
+  else sessionStorage.removeItem('macbook-flip-github-token');
+  githubToken = '';
+  updateGithubAuthButton();
+}
+async function githubRequest(endpoint, options={}) {
+  const response = await fetch(`${GITHUB_API_ROOT}${endpoint}`, {
+    ...options,
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${githubToken}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.body ? {'Content-Type':'application/json'} : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const body = await response.json().catch(()=>({}));
+  if (!response.ok) throw new Error(`GitHub ${response.status}: ${body.message || response.statusText}`);
+  return body;
+}
+async function readGithubJson(path, ref='main', allowMissing=false) {
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+  try {
+    const file = await githubRequest(`/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`);
+    const bytes = Uint8Array.from(atob(String(file.content||'').replace(/\s/g,'')), char=>char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    if (allowMissing && /GitHub 404:/.test(error.message)) return null;
+    throw error;
+  }
+}
+function remoteRows(payload) {
+  if (Array.isArray(payload)) return payload;
+  for (const key of ['listings','items','results']) if (Array.isArray(payload?.[key])) return payload[key];
+  throw new Error('GitHub listings.json 格式不正确');
+}
+function withRemoteRows(payload, rows) {
+  if (Array.isArray(payload)) return rows;
+  const key = ['listings','items','results'].find(name=>Array.isArray(payload?.[name])) || 'listings';
+  return {...payload,[key]:rows};
+}
+function deletedIdsFromPayload(payload) {
+  const entries = Array.isArray(payload) ? payload : payload?.deletedIds || payload?.ids || [];
+  return new Set(Array.isArray(entries) ? entries.map(entry=>String(typeof entry==='object'?(entry.id||entry.listingId||''):entry)).filter(Boolean) : []);
+}
+async function connectGithubToken(token) {
+  const previousToken = githubToken;
+  githubToken = token.trim();
+  try {
+    await readGithubJson('listings.json');
+    await storeGithubToken(githubToken);
+  } catch {
+    githubToken = previousToken;
+    throw new Error('令牌无效或缺少此仓库的 Contents 读取权限。请确认授权仓库 BENGBENGBENG7/macbook-flip-calculator，且 Contents 权限为 Read and write。');
+  }
+}
+async function commitRemoteDeletion(item) {
+  const id = listingKey(item);
+  for (let attempt=0; attempt<3; attempt+=1) {
+    try {
+      const ref = await githubRequest('/git/ref/heads/main');
+      const parentSha = ref.object.sha;
+      const head = await githubRequest(`/git/commits/${parentSha}`);
+      const listingsPayload = await readGithubJson('listings.json', parentSha);
+      const deletedPayload = await readGithubJson('deleted-listings.json', parentSha, true);
+      const rows = remoteRows(listingsPayload);
+      const remainingRows = rows.filter(row=>listingKey(row)!==id);
+      const tombstones = deletedIdsFromPayload(deletedPayload);
+      if (remainingRows.length===rows.length && tombstones.has(id)) return;
+      tombstones.add(id);
+      const updatedListings = JSON.stringify(withRemoteRows(listingsPayload, remainingRows),null,2)+'\n';
+      const updatedDeleted = JSON.stringify([...tombstones],null,2)+'\n';
+      const [listingsBlob,deletedBlob] = await Promise.all([
+        githubRequest('/git/blobs',{method:'POST',body:JSON.stringify({content:updatedListings,encoding:'utf-8'})}),
+        githubRequest('/git/blobs',{method:'POST',body:JSON.stringify({content:updatedDeleted,encoding:'utf-8'})}),
+      ]);
+      const tree = await githubRequest('/git/trees',{method:'POST',body:JSON.stringify({base_tree:head.tree.sha,tree:[
+        {path:'listings.json',mode:'100644',type:'blob',sha:listingsBlob.sha},
+        {path:'deleted-listings.json',mode:'100644',type:'blob',sha:deletedBlob.sha},
+      ]})});
+      const commit = await githubRequest('/git/commits',{method:'POST',body:JSON.stringify({
+        message:`Remove listing ${id} from Macbook flip`,tree:tree.sha,parents:[parentSha],
+      })});
+      await githubRequest('/git/refs/heads/main',{method:'PATCH',body:JSON.stringify({sha:commit.sha,force:false})});
+      return;
+    } catch (error) {
+      const concurrentUpdate = /GitHub (409|422):/.test(error.message);
+      if (!concurrentUpdate || attempt===2) throw error;
+    }
+  }
+}
+function openGithubAuthDialog() {
+  const tokenInput = document.querySelector('#githubTokenInput');
+  const disconnect = document.querySelector('#disconnectGithub');
+  if (tokenInput) tokenInput.value = '';
+  if (disconnect) disconnect.hidden = !githubToken;
+  document.querySelector('#githubTokenDialog').showModal();
+}
+async function performRemoteDelete(id) {
+  const item = listings.find(entry=>entry.id===id);
+  if (!item || !githubToken) return;
+  try {
+    updateSyncText('正在从 GitHub 删除商品…');
+    await commitRemoteDeletion(item);
+    const deletedIds = loadUserDeletedIds();
+    deletedIds.add(listingKey(item));
+    saveUserDeletedIds(deletedIds);
+    listings = listings.filter(entry=>listingKey(entry)!==listingKey(item));
+    selectedListingId = null;
+    pendingDeleteId = null;
+    saveListings();
+    render();
+    updateSyncText('商品已从 GitHub 删除');
+    toast('已从 GitHub 删除；其他设备会在下次同步时更新');
+  } catch (error) {
+    console.error('GitHub 删除失败',error);
+    if (/GitHub 401:/.test(error.message)) { await clearGithubToken(); }
+    toast('GitHub 删除失败：请检查令牌的仓库和 Contents 写入权限');
+  }
+}
 function timestamp(value, fallback=Date.now()) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -190,19 +346,27 @@ async function syncListings() {
   let expiredCount = pruneExpiredListings();
   if (expiredCount) render();
   try {
-    const response = await fetch(`${LISTINGS_URL}?_=${Date.now()}`, {cache:'no-store'});
+    const cacheKey = Date.now();
+    const [response,deletedResponse] = await Promise.all([
+      fetch(`${LISTINGS_URL}?_=${cacheKey}`, {cache:'no-store'}),
+      fetch(`${DELETED_LISTINGS_URL}?_=${cacheKey}`, {cache:'no-store'}),
+    ]);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
-    const rows = Array.isArray(payload) ? payload : (payload.listings || payload.items || payload.results || []);
-    if (!Array.isArray(rows)) throw new Error('listings.json 格式应为数组或包含 listings/items/results 数组');
+    const rows = remoteRows(payload);
+    if (!deletedResponse.ok && deletedResponse.status !== 404) throw new Error(`删除记录 HTTP ${deletedResponse.status}`);
+    const deletedPayload = deletedResponse.ok ? await deletedResponse.json() : [];
+    const allDeletedIds = deletedIdsFromPayload(deletedPayload);
     const currentByKey = new Map(listings.map(item => [listingKey(item), item]));
     const expiredIds = loadExpiredSyncIds();
+    const userDeletedIds = loadUserDeletedIds();
     const synced = [];
     const now = Date.now();
     for (const raw of rows.filter(item => item && typeof item === 'object')) {
       const normalized = normalizeFeedItem(raw);
       const item = preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
       const id = listingKey(item);
+      if (allDeletedIds.has(id) || userDeletedIds.has(id)) continue;
       const wasExpired = expiredIds.has(id);
       if (wasExpired || now - timestamp(item.firstSeenAt, now) >= SYNCED_LISTING_TTL_MS) {
         if (!wasExpired) { expiredIds.add(id); expiredCount += 1; }
@@ -212,7 +376,7 @@ async function syncListings() {
     }
     saveExpiredSyncIds(expiredIds);
     const manual = listings.filter(item => !item.syncManaged);
-    listings = [...manual, ...synced];
+    listings = [...manual.filter(item => !allDeletedIds.has(listingKey(item)) && !userDeletedIds.has(listingKey(item))), ...synced];
     saveListings();
     scheduleExpiryCheck();
     const time = new Intl.DateTimeFormat('zh-SG', {hour:'2-digit',minute:'2-digit'}).format(new Date());
@@ -226,29 +390,74 @@ async function syncListings() {
   }
 }
 function spec(label, value) { return `<div><div class="spec-label">${label}</div><div class="spec-value">${esc(value || '—')}</div></div>`; }
+function itemImages(item) {
+  return (Array.isArray(item.images) ? item.images : [item.image])
+    .map(image => safeUrl(typeof image === 'string' ? image : (image?.url || image?.src || '')))
+    .filter(Boolean).slice(0, 10);
+}
+function recommendation(item, c) {
+  if (!Number.isFinite(c.profitLow) || !Number.isFinite(c.profitHigh)) return 0;
+  const referenceProfit = (c.profitLow + c.profitHigh) / 2;
+  const margin = referenceProfit / Math.max(1, c.baseCost);
+  const profitScore = Math.max(0, Math.min(1, (margin + 0.05) / 0.35));
+  const samples = Math.max(1, Math.min(5, Number(item.sampleCount) || 1));
+  const confidence = 0.72 + samples * 0.056;
+  return c.decision === 'red' ? 0 : Math.round(profitScore * confidence * 100);
+}
+function platformStyle(item) {
+  return item.platform === 'Carousell' ? 'carousell' : item.platform === '闲鱼' ? 'xianyu' : 'other';
+}
+function listingPriceLabel(item,c) {
+  return item.platform === 'Carousell' ? money(c.purchaseSgd) : `¥${Number(item.priceCny||0).toLocaleString('zh-CN')}`;
+}
+function suggestedBuyLabel(item,c) {
+  return item.platform === 'Carousell' ? money(c.maxBuyCny*cnyToSgd) : money(c.maxBuyCny,'CNY');
+}
 function renderCard(item) {
+  const c = calc(item);
+  const labels = {green:'可以买',yellow:'谨慎评估',red:'建议不买'};
+  const decision = rateStatus === 'error' ? 'yellow' : c.decision;
+  const score = recommendation(item, c);
+  const listing = safeUrl(item.url);
+  const platformLabel = item.platform || '未注明平台';
+  const platformClass = platformStyle(item);
+  const images = itemImages(item);
+  const galleryIndex = images.length ? ((galleryIndexes.get(item.id) || 0) % images.length) : 0;
+  const image = images[galleryIndex];
+  const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
+  const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
+  return `<article class="listing-card feed-card" data-id="${esc(item.id)}">
+    ${image ? `<button type="button" class="feed-image" data-detail-open data-id="${esc(item.id)}" aria-label="查看商品详情：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')}" loading="lazy" onerror="this.closest('.feed-image').classList.add('image-error')">${images.length>1?`<span class="feed-image-count">${images.length} 张照片</span>`:''}</button>` : `<button type="button" class="feed-image feed-image-empty" data-detail-open data-id="${esc(item.id)}">查看商品详情</button>`}
+    <div class="feed-card-content">
+      <button type="button" class="feed-title" data-detail-open data-id="${esc(item.id)}"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><span>${esc(item.description || '未命名商品')}</span></button>
+      <div class="feed-price-row"><div class="feed-price asking"><small>挂价</small><strong>${listingPriceLabel(item,c)}</strong></div><div class="feed-price target"><small>建议购入</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="recommend-score ${decision}"><small>推荐指数</small><strong>${score}<small>%</small></strong></div></div>
+      <div class="feed-profit"><span>预计利润</span><strong class="${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div>
+    </div>
+  </article>`;
+}
+function renderDetail(item) {
   const c = calc(item);
   const labels = {green:'可以买',yellow:'谨慎评估',red:'建议不买'};
   const decision = rateStatus === 'error' ? 'yellow' : c.decision;
   const sold = safeUrl(item.soldSource);
   const listing = safeUrl(item.url);
+  const platformClass = platformStyle(item);
   const platformLabel = item.platform || '未注明平台';
-  const platformClass = item.platform === 'Carousell' ? 'carousell' : item.platform === '闲鱼' ? 'xianyu' : 'other';
-  const images = (Array.isArray(item.images) ? item.images : [item.image])
-    .map(image => safeUrl(typeof image === 'string' ? image : (image?.url || image?.src || '')))
-    .filter(Boolean).slice(0, 10);
+  const images = itemImages(item);
   const galleryIndex = images.length ? ((galleryIndexes.get(item.id) || 0) % images.length) : 0;
   const image = images[galleryIndex];
+  const score = recommendation(item, c);
   const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
   const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
-  return `<article class="listing-card" data-id="${esc(item.id)}">
-    ${image ? `<div class="card-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">查看原图 ↗</span>${images.length > 1 ? `<div class="gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
-    <div class="card-content">
-      <div class="platform-row"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span></div>
-      <div class="card-heading"><h2>${esc(item.description || '未命名商品')}</h2><span class="decision ${decision}">${labels[decision]}</span></div>
+  return `<div class="detail-page-nav"><button type="button" class="back-button" id="backToFeed">‹ <span>返回巡查列表</span></button><span>商品详情</span></div>
+  <article class="listing-card detail-card" data-id="${esc(item.id)}">
+    ${image ? `<div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">查看原图 ↗</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
+    <div class="card-content detail-card-content">
+      <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2>${esc(item.description || '未命名商品')}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
+      <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong></div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div></div>
+      <p class="recommend-line"><span class="recommend-score ${decision}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span></p>
       <p class="seller-line">卖家：${esc(item.seller || '未填写')}</p>
       ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
-      <div class="profit-panel"><div class="profit-top"><span class="profit-label">预计利润区间</span><strong class="profit-amount ${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div><div class="profit-sub"><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span><span>售价 ${money(c.low)} – ${money(c.high)}</span></div></div>
       <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
       <section class="detail-section"><h3 class="section-title">费用明细 · 新币</h3><div class="cost-list">
         <div class="cost-row"><span>商品价格 · ¥${Number(item.priceCny||0).toLocaleString('zh-CN')} × 汇率</span><span>${money(c.purchaseSgd)}</span></div>
@@ -266,9 +475,13 @@ function renderCard(item) {
 function render() {
   const sort = document.querySelector('#sortMode').value;
   const sorted = [...listings].sort((a,b) => sort === 'date' ? b.createdAt-a.createdAt : calc(b).profitLow-calc(a).profitLow);
-  grid.innerHTML = sorted.map(renderCard).join('');
+  const selected = listings.find(item => item.id === selectedListingId);
+  grid.hidden = !!selected;
+  document.querySelector('#detailView').hidden = !selected;
+  document.querySelector('#detailView').innerHTML = selected ? renderDetail(selected) : '';
+  grid.innerHTML = selected ? '' : sorted.map(renderCard).join('');
   document.querySelector('#listingCount').textContent = `${listings.length} 台商品`;
-  document.querySelector('#emptyState').classList.toggle('visible', listings.length===0);
+  document.querySelector('#emptyState').classList.toggle('visible', listings.length===0 && !selected);
 }
 function updateRateText() {
   const el = document.querySelector('#rateText');
@@ -287,6 +500,11 @@ async function fetchRate() {
   } catch (error) { rateStatus='error'; console.error('汇率加载失败',error); }
   updateRateText(); render();
 }
+function openDetail(id) {
+  selectedListingId = id;
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function openForm(item) {
   form.reset();
   document.querySelector('#listingId').value=item?.id||'';
@@ -299,12 +517,39 @@ function openForm(item) {
   }
   dialog.showModal();
 }
-document.querySelector('#addListing').addEventListener('click',()=>openForm());
-document.querySelector('#addFirst').addEventListener('click',()=>openForm());
 document.querySelector('#closeDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#cancelDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#sortMode').addEventListener('change',render);
 document.querySelector('#refreshRate').addEventListener('click',fetchRate);
+const githubTokenDialog = document.querySelector('#githubTokenDialog');
+document.querySelector('#githubAuthButton').addEventListener('click',openGithubAuthDialog);
+document.querySelector('#closeGithubTokenDialog').addEventListener('click',()=>githubTokenDialog.close());
+document.querySelector('#cancelGithubToken').addEventListener('click',()=>githubTokenDialog.close());
+document.querySelector('#disconnectGithub').addEventListener('click',async()=>{
+  await clearGithubToken();
+  pendingDeleteId=null;
+  githubTokenDialog.close();
+  toast('已断开 GitHub 连接');
+});
+document.querySelector('#githubTokenForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const button=document.querySelector('#saveGithubToken');
+  const token=document.querySelector('#githubTokenInput').value.trim();
+  if(!token){toast('请先粘贴 GitHub 令牌');return;}
+  button.disabled=true;
+  button.textContent='正在验证…';
+  try{
+    await connectGithubToken(token);
+    githubTokenDialog.close();
+    toast('GitHub 仓库已连接');
+    if(pendingDeleteId)await performRemoteDelete(pendingDeleteId);
+  }catch(error){toast(error.message);}
+  finally{button.disabled=false;button.textContent='连接';}
+});
+githubTokenDialog.addEventListener('close',()=>{
+  if(!githubToken)pendingDeleteId=null;
+  document.querySelector('#githubTokenInput').value='';
+});
 document.querySelector('#syncNow').addEventListener('click', async event => {
   const button = event.currentTarget;
   if (button.disabled) return;
@@ -338,7 +583,10 @@ document.querySelector('#syncNow').addEventListener('click', async event => {
 });
 document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus==='error')fetchRate();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
-grid.addEventListener('click',event=>{
+document.querySelector('.page-shell').addEventListener('click',async event=>{
+  const detailOpen=event.target.closest('[data-detail-open]');
+  if(detailOpen){openDetail(detailOpen.dataset.id);return;}
+  if(event.target.closest('#backToFeed')){selectedListingId=null;render();window.scrollTo({top:0,behavior:'smooth'});return;}
   const imageOpen=event.target.closest('[data-image-open]');
   if(imageOpen){
     const card=imageOpen.closest('.listing-card');
@@ -360,7 +608,14 @@ grid.addEventListener('click',event=>{
   const edit=event.target.closest('.edit-button');
   const remove=event.target.closest('.delete-button');
   if(edit){const item=listings.find(x=>x.id===edit.dataset.id);if(item)openForm(item);}
-  if(remove){listings=listings.filter(x=>x.id!==remove.dataset.id);saveListings();render();}
+  if(remove){
+    const item=listings.find(x=>x.id===remove.dataset.id);
+    if(!item||!window.confirm(`确定删除这条商品吗？\n\n“${item.description||'未命名商品'}”会从 GitHub 巡查列表移除，并在其他设备下次同步时删除。`))return;
+    if(githubTokenLoading)await loadGithubToken();
+    pendingDeleteId=item.id;
+    if(!githubToken){openGithubAuthDialog();return;}
+    await performRemoteDelete(item.id);
+  }
 });
 imageSizeToggle.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('click',toggleImageSize);
@@ -371,26 +626,9 @@ imageDialog.addEventListener('keydown',event=>{
   if(event.key==='ArrowLeft'){event.preventDefault();stepViewerImage(-1);}
   if(event.key==='ArrowRight'){event.preventDefault();stepViewerImage(1);}
 });
-imageViewerStage.addEventListener('touchstart',event=>{
-  if(event.touches.length!==1||viewerImages.length<2)return;
-  const touch=event.changedTouches[0];
-  viewerTouchStart={x:touch.clientX,y:touch.clientY};
-},{passive:true});
-imageViewerStage.addEventListener('touchend',event=>{
-  if(!viewerTouchStart)return;
-  const touch=event.changedTouches[0];
-  const deltaX=touch.clientX-viewerTouchStart.x;
-  const deltaY=touch.clientY-viewerTouchStart.y;
-  viewerTouchStart=null;
-  if(Math.abs(deltaX)>48&&Math.abs(deltaX)>Math.abs(deltaY)*1.2){
-    event.preventDefault();
-    stepViewerImage(deltaX<0?1:-1);
-  }
-},{passive:false});
-imageViewerStage.addEventListener('touchcancel',()=>{viewerTouchStart=null;},{passive:true});
 document.querySelector('#closeImageViewer').addEventListener('click',()=>imageDialog.close());
 imageDialog.addEventListener('click',event=>{if(event.target===imageDialog)imageDialog.close();});
-imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');viewerImages=[];viewerTouchStart=null;});
+imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');viewerImages=[];});
 form.addEventListener('submit',event=>{
   event.preventDefault();
   const data=Object.fromEntries(new FormData(form).entries());
@@ -407,4 +645,4 @@ form.addEventListener('submit',event=>{
 });
 function toast(message){const el=document.createElement('div');el.className='toast';el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),2200);}
 pruneExpiredListings();
-render(); scheduleExpiryCheck(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);
+render(); scheduleExpiryCheck(); loadGithubToken(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);

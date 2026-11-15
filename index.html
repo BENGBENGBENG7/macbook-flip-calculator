@@ -4,40 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f7f4">
+  <meta name="application-name" content="Macbook flip">
+  <meta name="apple-mobile-web-app-title" content="Macbook flip">
   <meta name="description" content="MacBook Pro 翻新买卖核算工具：实时汇率、费用明细、成交价估算与利润排序。">
-  <title>MacBook Flip｜翻新核算</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Macbook flip</title>
+  <link rel="stylesheet" href="styles.css?v=market-home-20261115">
   <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=market-home-20261115">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="MacBook Flip 首页"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><linearGradient id="brandGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42e968"/><stop offset="1" stop-color="#00bd78"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="url(#brandGreen)"/><rect x="11" y="8.5" width="18" height="14" rx="2.8" fill="none" stroke="#fff" stroke-width="2.3"/><path d="M7.5 26h25l-2.1 3.2a1.8 1.8 0 0 1-1.5.8H11.1a1.8 1.8 0 0 1-1.5-.8L7.5 26Z" fill="#fff"/><path d="M17 27.5h6" stroke="#16a96b" stroke-width="1.1" stroke-linecap="round"/></svg></span><span>MacBook <b>Flip</b></span></a>
-    <div class="header-status"><div class="rate-pill"><span class="live-dot"></span><span id="rateText">正在获取汇率…</span><button id="refreshRate" class="icon-button" title="刷新汇率" aria-label="刷新汇率">↻</button></div><div class="sync-controls"><div class="sync-label"><span class="sync-dot"></span><span id="syncText">等待巡查数据同步</span></div><button id="syncNow" class="sync-button" type="button" aria-label="手动同步最新巡查数据"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/></svg><span>同步巡查</span></button></div></div>
+    <a class="brand" href="#top" aria-label="Macbook flip 首页"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><linearGradient id="brandGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42e968"/><stop offset="1" stop-color="#00bd78"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="url(#brandGreen)"/><rect x="11" y="8.5" width="18" height="14" rx="2.8" fill="none" stroke="#fff" stroke-width="2.3"/><path d="M7.5 26h25l-2.1 3.2a1.8 1.8 0 0 1-1.5.8H11.1a1.8 1.8 0 0 1-1.5-.8L7.5 26Z" fill="#fff"/><path d="M17 27.5h6" stroke="#16a96b" stroke-width="1.1" stroke-linecap="round"/></svg></span><span>Macbook <b>flip</b></span></a>
+    <div class="header-status"><div class="rate-pill"><span class="live-dot"></span><span id="rateText">正在获取汇率…</span><button id="refreshRate" class="icon-button" title="刷新汇率" aria-label="刷新汇率">↻</button></div><div class="sync-controls"><div class="sync-label"><span class="sync-dot"></span><span id="syncText">等待巡查数据同步</span></div><button id="githubAuthButton" class="github-auth-button" type="button" aria-label="连接 GitHub 仓库授权"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 3 3-3 3-2-2-2 2 2 2-3 3"/></svg><span id="githubAuthText">连接 GitHub</span></button><button id="syncNow" class="sync-button" type="button" aria-label="手动同步最新巡查数据"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/></svg><span>同步巡查</span></button></div></div>
   </header>
 
   <main id="top" class="page-shell">
-    <section class="intro">
-      <div>
-        <p class="eyebrow">BUY SMART · SELL WELL</p>
-        <h1>MacBook Pro 翻新核算</h1>
-        <p class="intro-copy">把商品资料、成交参考和利润分析放在一起，买前看清每一笔账。</p>
-      </div>
-      <button id="addListing" class="primary-button"><span aria-hidden="true">＋</span> 添加商品</button>
-    </section>
-
     <section class="toolbar" aria-label="列表工具">
-      <div class="toolbar-copy"><strong id="listingCount">0 台商品</strong><span>按预计利润从高到低排列</span></div>
+      <div class="toolbar-copy"><strong id="listingCount">0 台商品</strong><span>按预期收益查看</span></div>
       <label class="sort-select">排序
         <select id="sortMode"><option value="profit">预计利润</option><option value="date">最近添加</option></select>
       </label>
     </section>
 
     <section id="listingGrid" class="listing-grid" aria-live="polite"></section>
-    <section id="emptyState" class="empty-state">
-      <div class="empty-icon">⌕</div><h2>还没有商品</h2><p>添加一条闲鱼商品，录入新加坡近期成交样本，即可查看完整核算。</p><button class="text-button" id="addFirst">添加第一台 <span>→</span></button>
-    </section>
-
-    <footer class="page-footer"><span>汇率由 Frankfurter 提供 · 最新可用日度参考汇率</span><span>数据保存在此浏览器</span></footer>
+    <section id="detailView" class="detail-view" aria-live="polite" hidden></section>
+    <section id="emptyState" class="empty-state"><div class="empty-icon">⌕</div><h2>暂时没有巡查商品</h2></section>
   </main>
 
   <dialog id="listingDialog" class="listing-dialog">
@@ -72,14 +64,25 @@
       <div class="dialog-actions"><button type="button" class="secondary-button" id="cancelDialog">取消</button><button class="primary-button" type="submit">保存商品</button></div>
     </form>
   </dialog>
+  <dialog id="githubTokenDialog" class="token-dialog" aria-label="GitHub 仓库授权">
+    <form id="githubTokenForm" novalidate>
+      <div class="dialog-head"><div><p class="eyebrow">GITHUB ACCESS</p><h2>连接 GitHub</h2></div><button type="button" class="icon-button close-button" id="closeGithubTokenDialog" aria-label="关闭">×</button></div>
+      <p class="token-explanation">用于把删除操作同步到电脑和手机。请创建只授权 <b>BENGBENGBENG7/macbook-flip-calculator</b> 的细粒度访问令牌，并设置 <b>Contents: Read and write</b>。</p>
+      <a class="token-create-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">前往 GitHub 创建令牌 ↗</a>
+      <label class="token-label" for="githubTokenInput">Fine-grained personal access token</label>
+      <input id="githubTokenInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
+      <p class="token-security-note">网页版只保存在当前浏览器标签页会话；电脑 App 保存在 macOS 钥匙串。令牌不会上传到公开代码。</p>
+      <div class="dialog-actions token-actions"><button type="button" class="quiet-button delete" id="disconnectGithub" hidden>断开并移除令牌</button><button type="button" class="secondary-button" id="cancelGithubToken">取消</button><button class="primary-button" id="saveGithubToken">连接</button></div>
+    </form>
+  </dialog>
   <dialog id="imageDialog" class="image-dialog" aria-label="商品原图预览">
     <div class="image-viewer-toolbar">
       <div class="image-viewer-title"><strong>商品照片</strong><span id="imageDimensions">正在读取图片尺寸…</span><span id="imageCounter" aria-live="polite" hidden>1 / 1</span></div>
       <div class="image-viewer-actions"><button type="button" class="image-size-toggle" id="imageSizeToggle">查看原尺寸（100%）</button><button type="button" class="image-viewer-close" id="closeImageViewer" aria-label="关闭原图">×</button></div>
     </div>
     <div id="imageViewerStage" class="image-viewer-stage"><button type="button" id="previousViewerImage" class="image-viewer-nav previous" aria-label="上一张照片" hidden>‹</button><img id="fullSizeImage" alt="商品原图" title="点击切换显示比例"><button type="button" id="nextViewerImage" class="image-viewer-nav next" aria-label="下一张照片" hidden>›</button></div>
-    <p class="image-viewer-hint">左右滑动或点击两侧箭头切换照片 · 点击照片可切换原尺寸</p>
+    <p class="image-viewer-hint">使用左右按钮切换照片 · 点击照片切换原尺寸 · 可双指缩放</p>
   </dialog>
-  <script src="app.js?v=viewer-gallery-20261114"></script>
+  <script src="app.js?v=market-home-20261115"></script>
 </body>
 </html>

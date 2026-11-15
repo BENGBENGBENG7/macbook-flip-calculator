@@ -26,3 +26,93 @@
 .image-viewer-nav.next{right:clamp(8px,calc((100vw - 1500px)/2 + 20px),64px)}
 .image-viewer-nav[hidden],#imageCounter[hidden]{display:none}
 @media(max-width:620px){.image-viewer-nav{width:42px;height:58px;border-radius:13px;font-size:38px;background:#111714b8}.image-viewer-nav.previous{left:8px}.image-viewer-nav.next{right:8px}.image-viewer-title{flex-direction:row;align-items:center;column-gap:8px}.image-viewer-title strong{font-size:13px}.image-viewer-title span{font-size:10px}.image-viewer-hint{font-size:10px}}
+
+/* Market-feed home and dedicated item detail */
+:root{--canvas:#f3f4f5;--red:#ee4744;--red-soft:#fff0ef;--green:#198754;--green-soft:#eaf7f0}
+.brand{font-weight:700;letter-spacing:-.4px}.brand b{font-weight:800}
+.topbar{height:68px;padding-left:max(3vw,16px);padding-right:max(3vw,16px)}
+.page-shell{max-width:1240px;padding:10px max(3vw,14px) 32px}
+.toolbar{position:sticky;top:68px;z-index:5;height:50px;margin:0 -2px 13px;padding:0 4px;background:#f3f4f5ed;backdrop-filter:blur(12px);border-bottom:1px solid #dfe2e4}
+.toolbar-copy{gap:9px}.toolbar-copy strong{font-size:14px}.toolbar-copy span{font-size:11px}
+.listing-grid{display:block;column-count:2;column-gap:12px;column-fill:balance}
+.listing-grid[hidden],.detail-view[hidden]{display:none!important}
+.listing-card{width:100%;margin:0 0 12px;break-inside:avoid;border:1px solid #e9ebed;border-radius:14px;box-shadow:0 2px 9px #17221e08}
+.feed-card{display:inline-block;vertical-align:top}
+.feed-image{position:relative;display:block;width:100%;height:auto;min-height:70px;padding:0;overflow:hidden;border:0;background:#e9ecee;text-align:center}
+.feed-image img{display:block;width:100%;height:auto;object-fit:contain}
+.feed-image.image-error img{display:none}
+.feed-image-empty{min-height:150px;color:#77817c}
+.feed-image-count{position:absolute;right:7px;bottom:7px;padding:4px 7px;border-radius:99px;background:#17221ecc;color:white;font-size:10px}
+.feed-card-content{padding:9px 10px 11px}
+.feed-title{display:flex;align-items:flex-start;gap:6px;width:100%;padding:0;border:0;background:none;color:var(--ink);text-align:left;font-size:13px;font-weight:600;line-height:1.45}
+.feed-title>span:last-child{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.feed-title .platform-badge{flex:none;min-height:20px;padding:2px 6px;font-size:9px;line-height:1.2;letter-spacing:0}
+.feed-price-row{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:5px;margin-top:10px;padding-top:8px;border-top:1px solid #eff0f1}
+.feed-price,.recommend-score{min-width:0;display:flex;flex-direction:column;gap:2px}
+.feed-price>small,.recommend-score>small,.price-comparison small{color:#899096;font-size:9px;font-weight:500;white-space:nowrap}
+.feed-price>strong{font-size:13px;line-height:1.2;white-space:nowrap;letter-spacing:-.3px}
+.feed-price.asking>strong{color:#ef4b47}.feed-price.target>strong{color:#198754}
+.recommend-score{align-items:center;justify-content:center;min-width:43px;padding:5px 6px;border-radius:9px;background:#f0f2f3;color:#626b72}
+.recommend-score>strong{font-size:14px;line-height:1}.recommend-score>strong small{font-size:9px}
+.recommend-score.green{background:#e9f6ee;color:#198754}.recommend-score.yellow{background:#fff5df;color:#a66b14}.recommend-score.red{background:#fff0ef;color:#d5433f}
+.feed-profit{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:8px;color:#7b848a;font-size:9px}
+.feed-profit strong{font-size:10px;text-align:right;white-space:nowrap}.feed-profit .pos{color:#198754}.feed-profit .neg{color:#d5433f}
+.detail-page-nav{position:sticky;top:118px;z-index:2;display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto 12px;padding:8px 2px;background:#f3f4f5ed;color:#81898e;font-size:12px;backdrop-filter:blur(12px)}
+.back-button{padding:5px 8px;border:0;border-radius:8px;background:#e9ecee;color:#323a3f;font-size:13px;font-weight:600}
+.detail-card{max-width:900px;margin:0 auto 28px;overflow:hidden}
+.detail-cover{height:min(62vh,680px);min-height:240px}
+.detail-cover .card-image-button img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+.detail-gallery-controls{inset:auto 0 0;display:flex;justify-content:center;padding:12px;transform:none}
+.detail-gallery-controls .gallery-arrows{display:contents}
+.detail-gallery-controls .gallery-button{position:absolute;top:50%;width:44px;height:54px;transform:translateY(-50%);border-radius:13px}
+.detail-gallery-controls .gallery-button:hover{transform:translateY(-50%) scale(1.04)}
+.detail-gallery-controls .gallery-button:first-child{left:12px}.detail-gallery-controls .gallery-button:last-child{right:12px}
+.detail-gallery-controls .gallery-count{position:relative}
+.detail-card-content{padding:24px clamp(18px,4vw,38px) 24px}
+.feed-title-static{display:flex;align-items:center;gap:8px;min-width:0}
+.feed-title-static .platform-badge{flex:none}.feed-title-static h2{min-width:0;overflow-wrap:anywhere}
+.detail-heading{align-items:center}.detail-heading .decision{align-self:flex-start}
+.price-comparison{display:grid;grid-template-columns:1fr 1fr 1.45fr;gap:8px;margin:18px 0 10px;padding:14px 12px;border-radius:13px;background:#f6f7f7}
+.price-comparison>div{min-width:0;display:flex;flex-direction:column;gap:5px}
+.price-comparison strong{font-size:17px;letter-spacing:-.4px;white-space:nowrap}
+.price-comparison .asking-price{color:#ef4b47}.price-comparison .comparison-profit strong{font-size:15px}
+.recommend-line{display:flex;align-items:center;gap:10px;margin:8px 0 13px;color:#81898e;font-size:11px}
+.recommend-line .recommend-score{display:inline-flex;flex-direction:row;gap:7px;padding:7px 9px}
+.recommend-line .recommend-score>strong{font-size:13px}
+.detail-view{padding-bottom:18px}
+.empty-state{padding:55px 10px 75px}.empty-state p,.text-button{display:none}
+.card-actions .delete{color:#cc423e}
+.image-viewer-stage{touch-action:pan-x pan-y pinch-zoom}
+.image-viewer-stage img{touch-action:pan-x pan-y pinch-zoom}
+@media(min-width:1000px){.listing-grid{column-count:3;column-gap:16px}.feed-card-content{padding:12px 13px 14px}.feed-title{font-size:14px}.feed-title .platform-badge{font-size:10px}.feed-price>strong{font-size:15px}.feed-price>small,.recommend-score>small{font-size:10px}.feed-profit{font-size:10px}.feed-profit strong{font-size:11px}}
+@media(max-width:620px){
+  .topbar{height:58px;padding:0 11px}.brand{gap:7px;font-size:13px}.brand-mark{width:27px;height:27px}
+  .header-status{align-items:flex-end;gap:4px}.header-status .rate-pill{display:none}.sync-controls{gap:0}.sync-label{display:none}.sync-button{min-height:32px;padding:0 8px;font-size:11px}.sync-button svg{width:15px;height:15px}
+  .page-shell{padding:0 8px 24px}.toolbar{top:58px;height:44px;margin:0 -1px 9px;padding:0 4px}.toolbar-copy{display:flex;align-items:center}.toolbar-copy strong{margin:0;font-size:12px}.toolbar-copy span{font-size:9px}.sort-select{gap:4px;font-size:10px}.sort-select select{font-size:11px}
+  .listing-grid{column-count:2;column-gap:8px}.listing-card{margin-bottom:8px;border-radius:12px}.feed-card-content{padding:7px 7px 9px}.feed-title{gap:4px;font-size:11px;line-height:1.4}.feed-title .platform-badge{min-height:18px;padding:2px 5px;font-size:8px}.feed-price-row{gap:3px;margin-top:7px;padding-top:7px}.feed-price>small,.recommend-score>small{font-size:8px}.feed-price>strong{font-size:11px}.recommend-score{min-width:37px;padding:4px}.recommend-score>strong{font-size:12px}.feed-profit{margin-top:6px;font-size:8px}.feed-profit strong{font-size:8px}
+  .detail-page-nav{top:102px;margin-bottom:8px}.detail-card{margin-bottom:20px}.detail-cover{height:min(50vh,520px);min-height:210px}.detail-card-content{padding:18px 15px 19px}.detail-heading{gap:8px}.feed-title-static{flex-wrap:wrap;gap:6px}.feed-title-static h2{font-size:16px}.detail-heading .decision{padding:6px 8px;font-size:10px}.price-comparison{grid-template-columns:1fr 1fr;gap:10px;margin:13px 0 8px;padding:12px 10px}.price-comparison>div{gap:4px}.price-comparison .comparison-profit{grid-column:1/-1;padding-top:8px;border-top:1px solid #e7e9e9}.price-comparison strong{font-size:16px}.price-comparison .comparison-profit strong{font-size:16px}.recommend-line{font-size:10px}.spec-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .image-viewer-nav{position:fixed}.image-dialog{touch-action:pan-x pan-y pinch-zoom}
+}
+.github-auth-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 10px;border:1px solid #d9dddf;border-radius:10px;background:#fff;color:#59636a;font-size:11px;font-weight:600;white-space:nowrap}
+.github-auth-button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.github-auth-button.connected{border-color:#bddbc8;background:#edf7f0;color:#287548}
+.token-dialog{width:min(490px,calc(100% - 24px));border:0;border-radius:18px;padding:0;background:#fff;color:var(--ink);box-shadow:0 25px 90px #14251c35}
+.token-dialog::backdrop{background:#17221e66;backdrop-filter:blur(3px)}
+#githubTokenForm{padding:27px 28px 22px}
+.token-explanation{margin:0 0 10px;color:#626d73;font-size:13px;line-height:1.65}
+.token-explanation b{color:#26352d}
+.token-create-link{display:inline-block;margin:1px 0 18px;color:#287548;font-size:12px;font-weight:700;text-decoration:none}
+.token-create-link:hover{text-decoration:underline}
+.token-label{display:block;margin-bottom:7px;color:#48544c;font-size:11px;font-weight:600}
+#githubTokenInput{width:100%;height:42px;padding:0 12px;border:1px solid #dfe4e0;border-radius:9px;background:#fff;color:var(--ink);font-size:13px;outline:0}
+#githubTokenInput:focus{border-color:#86ad95;box-shadow:0 0 0 3px #e8f3eb}
+.token-security-note{margin:9px 0 19px;color:#8a9490;font-size:10px;line-height:1.55}
+.token-actions{align-items:center}
+.token-actions #disconnectGithub{margin-right:auto}
+.token-actions button{font-size:12px}
+@media(max-width:620px){
+  .github-auth-button{width:31px;min-width:31px;height:31px;min-height:31px;padding:0;border-radius:9px}
+  .github-auth-button span{display:none}
+  #githubTokenForm{padding:23px 19px 18px}
+  .token-explanation{font-size:12px}
+}
