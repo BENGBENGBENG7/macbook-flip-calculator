@@ -5,15 +5,15 @@
       <stop offset="1" stop-color="#00bd78"/>
     </linearGradient>
     <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+      <stop offset="0" stop-color="#fff" stop-opacity=".19"/>
       <stop offset=".48" stop-color="#fff" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <rect x="24" y="24" width="976" height="976" rx="232" fill="url(#green)"/>
-  <rect x="30" y="30" width="964" height="964" rx="226" fill="none" stroke="#fff" stroke-opacity=".24" stroke-width="12"/>
-  <rect x="24" y="24" width="976" height="976" rx="232" fill="url(#shine)"/>
-  <rect x="264" y="208" width="496" height="390" rx="48" fill="none" stroke="#fff" stroke-width="40"/>
-  <circle cx="512" cy="252" r="9" fill="#fff"/>
-  <path d="M226 580h572l62 100c17 28-3 62-35 62H199c-32 0-52-34-35-62z" fill="#fff"/>
-  <rect x="466" y="686" width="92" height="12" rx="6" fill="#10aa6c"/>
+  <rect x="24" y="24" width="976" height="976" rx="286" fill="url(#green)"/>
+  <rect x="32" y="32" width="960" height="960" rx="278" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="12"/>
+  <rect x="24" y="24" width="976" height="976" rx="286" fill="url(#shine)"/>
+  <rect x="262" y="188" width="500" height="416" rx="74" fill="none" stroke="#fff" stroke-width="38"/>
+  <circle cx="512" cy="228" r="9" fill="#fff"/>
+  <path d="M220 621h584l60 87c16 24-1 55-31 55H191c-30 0-47-31-31-55z" fill="#fff"/>
+  <path d="M444 686h136" stroke="#10aa6c" stroke-width="18" stroke-linecap="round"/>
 </svg>

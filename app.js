@@ -7,9 +7,7 @@ const LISTINGS_URL = './listings.json';
 const DELETED_LISTINGS_URL = './deleted-listings.json';
 const GITHUB_API_ROOT = 'https://api.github.com/repos/BENGBENGBENG7/macbook-flip-calculator';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
-// No age-based expiry: listings.json is curated by the watch (sold/delisted items
-// are removed there), so a listing must stay visible until the watch removes it.
-// (An earlier 3-day TTL silently hid still-for-sale machines.)
+const SYNCED_LISTING_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 function loadRateCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(RATE_CACHE_KEY)||'null');
@@ -64,6 +62,66 @@ function loadUserDeletedIds() {
   } catch { return new Set(); }
 }
 function saveUserDeletedIds(ids) { localStorage.setItem(USER_DELETED_IDS_KEY, JSON.stringify([...ids])); }
+function makeDataBackup() {
+  return {
+    format: 'macbook-flip-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    listings,
+    userDeletedIds: [...loadUserDeletedIds()],
+    expiredSyncIds: [...loadExpiredSyncIds()],
+    rateCache: loadRateCache(),
+  };
+}
+async function exportDataBackup() {
+  const contents = `${JSON.stringify(makeDataBackup(), null, 2)}\n`;
+  const filename = `Macbook-flip-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  if (window.macbookFlip?.saveBackup) {
+    const result = await window.macbookFlip.saveBackup(contents, filename);
+    if (result?.canceled) return;
+    if (!result?.ok) throw new Error('备份文件保存失败');
+    toast(`已导出备份：${result.filePath}`);
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([contents], {type: 'application/json'}));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('备份已下载，请保存到新电脑或云盘');
+}
+function importDataBackup(backup) {
+  if (backup?.format !== 'macbook-flip-backup' || backup.version !== 1 || !Array.isArray(backup.listings)) {
+    throw new Error('备份格式不正确或版本不支持');
+  }
+  const deletedIds = loadUserDeletedIds();
+  for (const id of Array.isArray(backup.userDeletedIds) ? backup.userDeletedIds : []) deletedIds.add(String(id));
+  saveUserDeletedIds(deletedIds);
+  const expiredIds = loadExpiredSyncIds();
+  for (const id of Array.isArray(backup.expiredSyncIds) ? backup.expiredSyncIds : []) expiredIds.add(String(id));
+  saveExpiredSyncIds(expiredIds);
+  const merged = new Map(listings.map(item => [listingKey(item), item]));
+  for (const item of backup.listings) {
+    if (!item || typeof item !== 'object') continue;
+    const key = listingKey(item);
+    if (!deletedIds.has(key) && !expiredIds.has(key)) merged.set(key, {...item, id: key});
+  }
+  listings = [...merged.values()].filter(item => !deletedIds.has(listingKey(item)) && !expiredIds.has(listingKey(item)));
+  saveListings();
+  if (backup.rateCache && Number(backup.rateCache.rate) > 0) {
+    localStorage.setItem(RATE_CACHE_KEY, JSON.stringify(backup.rateCache));
+    cnyToSgd = Number(backup.rateCache.rate);
+    rateDate = String(backup.rateCache.date || '');
+    rateStatus = 'cached';
+    updateRateText();
+  }
+  pruneExpiredListings();
+  render();
+  scheduleExpiryCheck();
+}
 async function loadGithubToken() {
   try {
     githubToken = window.macbookFlip?.getGithubToken
@@ -218,14 +276,36 @@ function loadExpiredSyncIds() {
 }
 function saveExpiredSyncIds(ids) { localStorage.setItem(EXPIRED_SYNC_IDS_KEY, JSON.stringify([...ids])); }
 function pruneExpiredListings(now=Date.now()) {
-  // No-op by design: no age-based expiry (see note where the TTL used to be).
-  // Listings leave the tool only when the watch removes them from listings.json,
-  // or when the user deletes them. Kept so existing callers keep working.
-  return 0;
+  const expiredIds = loadExpiredSyncIds();
+  let removed = 0;
+  let newExpiredId = false;
+  listings = listings.filter(item => {
+    if (!item.syncManaged) return true;
+    const id = listingKey(item);
+    const firstSeenAt = timestamp(item.firstSeenAt || item.createdAt || item.created_at, now);
+    item.firstSeenAt = firstSeenAt;
+    if (expiredIds.has(id) || now - firstSeenAt >= SYNCED_LISTING_TTL_MS) {
+      if (!expiredIds.has(id)) { expiredIds.add(id); newExpiredId = true; }
+      removed += 1;
+      return false;
+    }
+    return true;
+  });
+  if (removed) saveListings();
+  if (newExpiredId) saveExpiredSyncIds(expiredIds);
+  return removed;
 }
 function scheduleExpiryCheck() {
-  // No-op by design: no age-based expiry (see pruneExpiredListings).
-  return;
+  if (expiryTimer) clearTimeout(expiryTimer);
+  const expiries = listings
+    .filter(item => item.syncManaged)
+    .map(item => timestamp(item.firstSeenAt || item.createdAt, Date.now()) + SYNCED_LISTING_TTL_MS);
+  if (!expiries.length) return;
+  const delay = Math.max(1000, Math.min(...expiries) - Date.now() + 20);
+  expiryTimer = setTimeout(() => {
+    if (pruneExpiredListings()) render();
+    scheduleExpiryCheck();
+  }, delay);
 }
 function esc(value='') { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(value, currency='SGD') {
@@ -303,6 +383,10 @@ function inferPlatform(platform, url='') {
   return platform || '闲鱼';
 }
 function listingKey(item) { return String(item.id || item.itemId || item.goodsId || item.url || item.link || `${item.description || item.title || ''}|${item.priceCny || item.price || ''}`); }
+function sellerNameOnly(value) {
+  const leading = String(value || '').split(/[·|｜]/, 1)[0].trim();
+  return leading.replace(/\s*[（(](?=[^）)]*(?:已验证|评价|信用|信誉|评分|好评|\d(?:\.\d)?\s*分))[^）)]*[）)]\s*/gi, '').trim();
+}
 function normalizeFeedItem(raw) {
   const item = {...raw};
   item.id = listingKey(item);
@@ -395,6 +479,11 @@ async function syncListings() {
       const item = preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
       const id = listingKey(item);
       if (allDeletedIds.has(id) || userDeletedIds.has(id)) continue;
+      const wasExpired = expiredIds.has(id);
+      if (wasExpired || now - timestamp(item.firstSeenAt, now) >= SYNCED_LISTING_TTL_MS) {
+        if (!wasExpired) { expiredIds.add(id); expiredCount += 1; }
+        continue;
+      }
       synced.push(item);
     }
     saveExpiredSyncIds(expiredIds);
@@ -495,7 +584,7 @@ function renderDetail(item) {
       <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2>${esc(item.description || '未命名商品')}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
       <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong>${Number.isFinite(c.maxBuyCny) && Number(item.priceCny) > 0 && c.maxBuyCny > Number(item.priceCny) ? '<small>挂价已低于可接受上限，按挂价买即可</small>' : ''}</div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
       <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span></p>
-      <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(item.seller || '')}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">复制</span></button></p>
+      <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(sellerNameOnly(item.sellerName || item.nickname || item.username || item.seller || ''))}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">复制</span></button></p>
       ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
       <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
       <section class="detail-section"><h3 class="section-title">费用明细 <small>点击金额切换 CNY / SGD</small></h3><div class="cost-list">
@@ -586,7 +675,27 @@ function openForm(item) {
 }
 document.querySelector('#closeDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#cancelDialog').addEventListener('click',()=>dialog.close());
-document.querySelector('#sortMode').addEventListener('change',render);
+document.querySelector('#sortMode').addEventListener('change',()=>{render();window.scrollTo({top:0,behavior:'smooth'});});
+const backupDialog = document.querySelector('#backupDialog');
+document.querySelector('#backupData').addEventListener('click',()=>backupDialog.showModal());
+document.querySelector('#closeBackupDialog').addEventListener('click',()=>backupDialog.close());
+document.querySelector('#exportBackup').addEventListener('click',async()=>{
+  try { await exportDataBackup(); backupDialog.close(); }
+  catch(error) { console.error('导出备份失败',error); toast(error.message || '导出备份失败'); }
+});
+const backupFileInput = document.querySelector('#backupFileInput');
+document.querySelector('#importBackup').addEventListener('click',()=>backupFileInput.click());
+backupFileInput.addEventListener('change',async()=>{
+  const file=backupFileInput.files?.[0];
+  backupFileInput.value='';
+  if(!file)return;
+  try {
+    const backup=JSON.parse(await file.text());
+    importDataBackup(backup);
+    backupDialog.close();
+    toast('已导入备份并合并到当前巡查列表');
+  } catch(error) { console.error('导入备份失败',error); toast(error.message || '备份文件读取失败'); }
+});
 document.querySelector('#refreshRate').addEventListener('click',fetchRate);
 const githubTokenDialog = document.querySelector('#githubTokenDialog');
 document.querySelector('#githubAuthButton').addEventListener('click',openGithubAuthDialog);

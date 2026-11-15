@@ -168,3 +168,23 @@
   #githubTokenForm{padding:23px 19px 18px}
   .token-explanation{font-size:12px}
 }
+.backup-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 10px;border:1px solid #d9e3dc;border-radius:10px;background:#f6f9f6;color:#40594a;font-size:11px;font-weight:650;white-space:nowrap;transition:background .18s,border-color .18s}
+.backup-button:hover{background:#edf5ef;border-color:#afc8b7}
+.backup-button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.backup-dialog{padding:27px 28px 23px}
+.backup-dialog .dialog-head{margin-bottom:17px}
+.backup-actions{margin-top:19px}
+.sold-reference{font-size:11px}
+.sold-reference>small{font-size:9px}
+.sold-reference i{font-size:9px}
+.price-comparison .sold-reference{font-size:12px}
+.price-comparison .sold-reference>small{font-size:10px}
+@media(max-width:620px){
+  .backup-button{width:31px;min-width:31px;height:31px;min-height:31px;padding:0;border-radius:9px}
+  .backup-button span{display:none}
+  .backup-dialog{padding:23px 19px 18px}
+  .sold-reference{font-size:10px}
+  .sold-reference>small,.sold-reference i{font-size:8px}
+  .price-comparison .sold-reference{font-size:11px}
+  .price-comparison .sold-reference>small{font-size:9px}
+}
