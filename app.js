@@ -17,6 +17,7 @@ let selectedListingId = null;
 let githubToken = '';
 let pendingDeleteId = null;
 let githubTokenLoading = true;
+let feedScrollY = 0;
 const galleryIndexes = new Map();
 
 const grid = document.querySelector('#listingGrid');
@@ -65,7 +66,7 @@ async function loadGithubToken() {
 function updateGithubAuthButton() {
   const label = document.querySelector('#githubAuthText');
   const button = document.querySelector('#githubAuthButton');
-  if (label) label.textContent = githubToken ? 'GitHub 已连接' : '连接 GitHub';
+  if (label) label.textContent = githubToken ? '删除同步已授权' : '删除同步授权';
   if (button) button.classList.toggle('connected', !!githubToken);
 }
 async function storeGithubToken(token) {
@@ -243,6 +244,44 @@ function money(value, currency='SGD') {
   if (!Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('zh-SG', {style:'currency',currency,maximumFractionDigits:0}).format(value);
 }
+function amountToggle(cny, sgd, currency='SGD', className='') {
+  const finiteCny = Number.isFinite(Number(cny));
+  const finiteSgd = Number.isFinite(Number(sgd));
+  if (!finiteCny || !finiteSgd) {
+    const available = currency === 'CNY' && finiteCny ? money(Number(cny),'CNY') : currency === 'SGD' && finiteSgd ? money(Number(sgd),'SGD') : '—';
+    return `<span class="money-static ${className}">${available}</span>`;
+  }
+  const value = currency === 'CNY' ? Number(cny) : Number(sgd);
+  const unit = currency === 'CNY' ? 'CNY' : 'SGD';
+  return `<button type="button" class="money-toggle ${className}" data-cny="${Number(cny)}" data-sgd="${Number(sgd)}" data-currency="${currency}" title="点击切换人民币 / 新币">${money(value,unit)}<span aria-hidden="true">↔</span></button>`;
+}
+function amountFromCny(cny, currency='CNY', className='') {
+  const value = Number(cny);
+  return amountToggle(value, Number.isFinite(cnyToSgd) ? value*cnyToSgd : NaN, currency, className);
+}
+function amountFromSgd(sgd, currency='SGD', className='') {
+  const value = Number(sgd);
+  return amountToggle(Number.isFinite(cnyToSgd) && cnyToSgd ? value/cnyToSgd : NaN, value, currency, className);
+}
+function amountRangeFromSgd(low, high, currency='SGD', className='') {
+  const lowValue = Number(low), highValue = Number(high);
+  if (!Number.isFinite(lowValue) || !Number.isFinite(highValue)) return `<span class="money-static ${className}">—</span>`;
+  if (!Number.isFinite(cnyToSgd) || !cnyToSgd) return `<span class="money-static ${className}">${money(lowValue,'SGD')} – ${money(highValue,'SGD')}</span>`;
+  const lowCny = lowValue/cnyToSgd, highCny = highValue/cnyToSgd;
+  const left = currency === 'CNY' ? money(lowCny,'CNY') : money(lowValue,'SGD');
+  const right = currency === 'CNY' ? money(highCny,'CNY') : money(highValue,'SGD');
+  return `<button type="button" class="money-toggle money-range-toggle ${className}" data-low-cny="${lowCny}" data-high-cny="${highCny}" data-low-sgd="${lowValue}" data-high-sgd="${highValue}" data-currency="${currency}" title="点击切换人民币 / 新币">${left} – ${right}<span aria-hidden="true">↔</span></button>`;
+}
+function updateAmountToggle(button) {
+  const currency = button.dataset.currency === 'CNY' ? 'SGD' : 'CNY';
+  button.dataset.currency = currency;
+  if (button.classList.contains('money-range-toggle')) {
+    const cny = currency === 'CNY';
+    button.innerHTML = `${money(Number(button.dataset[cny?'lowCny':'lowSgd']),cny?'CNY':'SGD')} – ${money(Number(button.dataset[cny?'highCny':'highSgd']),cny?'CNY':'SGD')}<span aria-hidden="true">↔</span>`;
+  } else {
+    button.innerHTML = `${money(Number(button.dataset[currency.toLowerCase()]),currency)}<span aria-hidden="true">↔</span>`;
+  }
+}
 function safeUrl(value) {
   try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) ? url.href : ''; }
   catch { return ''; }
@@ -408,16 +447,29 @@ function platformStyle(item) {
   return item.platform === 'Carousell' ? 'carousell' : item.platform === '闲鱼' ? 'xianyu' : 'other';
 }
 function listingPriceLabel(item,c) {
-  return item.platform === 'Carousell' ? money(c.purchaseSgd) : `¥${Number(item.priceCny||0).toLocaleString('zh-CN')}`;
+  return item.platform === 'Carousell' ? amountFromSgd(c.purchaseSgd,'SGD') : amountFromCny(Number(item.priceCny||0),'CNY');
 }
 function suggestedBuyLabel(item,c) {
-  return item.platform === 'Carousell' ? money(c.maxBuyCny*cnyToSgd) : money(c.maxBuyCny,'CNY');
+  return amountFromCny(c.maxBuyCny,item.platform === 'Carousell' ? 'SGD' : 'CNY');
+}
+function soldReference(item,c) {
+  if (!(c.low > 0 || c.high > 0)) return '';
+  const average = (c.low+c.high)/2;
+  return `<div class="sold-reference"><small>成交参考</small><span>${amountRangeFromSgd(c.low,c.high,'SGD')} <i>均价</i> ${amountFromSgd(average,'SGD')}</span></div>`;
+}
+function recommendationTone(score, decision) {
+  if (decision === 'red') return 'rec-avoid';
+  if (score >= 40) return 'rec-best';
+  if (score >= 20) return 'rec-good';
+  if (score >= 8) return 'rec-watch';
+  return 'rec-low';
 }
 function renderCard(item) {
   const c = calc(item);
   const labels = {green:'可以买',yellow:'谨慎评估',red:'建议不买'};
   const decision = rateStatus === 'error' ? 'yellow' : c.decision;
   const score = recommendation(item, c);
+  const recTone = recommendationTone(score, decision);
   const listing = safeUrl(item.url);
   const platformLabel = item.platform || '未注明平台';
   const platformClass = platformStyle(item);
@@ -430,8 +482,8 @@ function renderCard(item) {
     ${image ? `<button type="button" class="feed-image" data-detail-open data-id="${esc(item.id)}" aria-label="查看商品详情：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')}" loading="lazy" onerror="this.closest('.feed-image').classList.add('image-error')">${images.length>1?`<span class="feed-image-count">${images.length} 张照片</span>`:''}</button>` : `<button type="button" class="feed-image feed-image-empty" data-detail-open data-id="${esc(item.id)}">查看商品详情</button>`}
     <div class="feed-card-content">
       <button type="button" class="feed-title" data-detail-open data-id="${esc(item.id)}"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><span>${esc(item.description || '未命名商品')}</span></button>
-      <div class="feed-price-row"><div class="feed-price asking"><small>挂价</small><strong>${listingPriceLabel(item,c)}</strong></div><div class="feed-price target"><small>建议购入</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="recommend-score ${decision}"><small>推荐指数</small><strong>${score}<small>%</small></strong></div></div>
-      <div class="feed-profit"><span>预计利润</span><strong class="${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div>
+      <div class="feed-price-row"><div class="feed-price asking"><small>挂价</small><strong>${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div class="feed-price target"><small>建议购入</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></div></div>
+      <div class="feed-profit"><span>预计利润</span><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div>
     </div>
   </article>`;
 }
@@ -447,6 +499,7 @@ function renderDetail(item) {
   const galleryIndex = images.length ? ((galleryIndexes.get(item.id) || 0) % images.length) : 0;
   const image = images[galleryIndex];
   const score = recommendation(item, c);
+  const recTone = recommendationTone(score, decision);
   const totalFeeLow = Number.isFinite(c.baseCost) ? c.baseCost + c.low*c.rate : NaN;
   const totalFeeHigh = Number.isFinite(c.baseCost) ? c.baseCost + c.high*c.rate : NaN;
   return `<div class="detail-page-nav"><button type="button" class="back-button" id="backToFeed">‹ <span>返回巡查列表</span></button><span>商品详情</span></div>
@@ -454,27 +507,32 @@ function renderDetail(item) {
     ${image ? `<div class="card-cover detail-cover"><button type="button" class="card-image-button" data-image-open data-image-src="${esc(image)}" data-image-alt="${esc(`${item.description || 'MacBook 商品图片'} · 图片 ${galleryIndex + 1}`)}" aria-label="查看原图：${esc(item.description || 'MacBook 商品图片')}"><img src="${esc(image)}" alt="${esc(item.description || 'MacBook 商品图片')} · 图片 ${galleryIndex + 1}" loading="lazy" onerror="this.closest('.card-cover').classList.add('image-error');this.closest('.card-image-button').remove()"></button><span class="image-open-hint" aria-hidden="true">查看原图 ↗</span>${images.length > 1 ? `<div class="gallery-controls detail-gallery-controls"><span class="gallery-count">${galleryIndex + 1} / ${images.length}</span><div class="gallery-arrows"><button type="button" class="gallery-button" data-gallery-step="-1" data-id="${esc(item.id)}" aria-label="上一张图片">‹</button><button type="button" class="gallery-button" data-gallery-step="1" data-id="${esc(item.id)}" aria-label="下一张图片">›</button></div></div>` : ''}</div>` : ''}
     <div class="card-content detail-card-content">
       <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2>${esc(item.description || '未命名商品')}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
-      <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong></div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${money(c.profitLow)} – ${money(c.profitHigh)}</strong></div></div>
-      <p class="recommend-line"><span class="recommend-score ${decision}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span></p>
-      <p class="seller-line">卖家：${esc(item.seller || '未填写')}</p>
+      <div class="price-comparison"><div><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong>${soldReference(item,c)}</div><div><small>建议购入价</small><strong>${suggestedBuyLabel(item,c)}</strong></div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
+      <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>按已成交样本估算 · ${esc(item.sampleCount || 1)} 个样本</span></p>
+      <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(item.seller || '')}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">复制</span></button></p>
       ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">↗</span></a>`:''}
       <section class="detail-section"><h3 class="section-title">机器信息</h3><div class="spec-grid">${spec('平台',item.platform)}${spec('尺寸',item.size)}${spec('芯片',item.chip)}${spec('内存',item.memory)}${spec('硬盘',item.storage)}${spec('电池健康',item.battery)}${spec('循环次数',item.cycles ? `${item.cycles} 次` : '')}${spec('成色',item.condition)}${spec('保修',item.warranty)}</div></section>
-      <section class="detail-section"><h3 class="section-title">费用明细 · 新币</h3><div class="cost-list">
-        <div class="cost-row"><span>商品价格 · ¥${Number(item.priceCny||0).toLocaleString('zh-CN')} × 汇率</span><span>${money(c.purchaseSgd)}</span></div>
-        <div class="cost-row"><span>${isXianyu(item.platform)?'闲鱼运费 · ¥150 × 汇率':'闲鱼运费 · Carousell 不适用'}</span><span>${money(c.shippingCny)}</span></div>
-        <div class="cost-row"><span>验货宝 · ¥54 × 汇率</span><span>${money(c.inspectionCny)}</span></div>
-        <div class="cost-row"><span>跨境运输</span><span>${money(c.shippingSgd)}</span></div>
-        <div class="cost-row"><span>维修 / 整备</span><span>${money(c.repairSgd)}</span></div>
-        <div class="cost-row"><span>平台费 · ${(Number(item.feePercent)||0).toFixed(1)}%（随成交价变化）</span><span>${money(c.low*c.rate)} – ${money(c.high*c.rate)}</span></div>
-        <div class="cost-row total"><span>预计总成本（含平台费）</span><span>${money(totalFeeLow)} – ${money(totalFeeHigh)}</span></div>
+      <section class="detail-section"><h3 class="section-title">费用明细 <small>点击金额切换 CNY / SGD</small></h3><div class="cost-list">
+        <div class="cost-row"><span>商品价格</span><span>${amountFromCny(Number(item.priceCny||0),'SGD')}</span></div>
+        <div class="cost-row"><span>${isXianyu(item.platform)?'闲鱼运费':'闲鱼运费 · Carousell 不适用'}</span><span>${amountFromSgd(c.shippingCny,'SGD')}</span></div>
+        <div class="cost-row"><span>验货宝</span><span>${amountFromCny(54,'SGD')}</span></div>
+        <div class="cost-row"><span>跨境运输</span><span>${amountFromSgd(c.shippingSgd,'SGD')}</span></div>
+        <div class="cost-row"><span>维修 / 整备</span><span>${amountFromSgd(c.repairSgd,'SGD')}</span></div>
+        <div class="cost-row"><span>平台费 · ${(Number(item.feePercent)||0).toFixed(1)}%（随成交价变化）</span><span>${amountRangeFromSgd(c.low*c.rate,c.high*c.rate,'SGD')}</span></div>
+        <div class="cost-row total"><span>预计总成本（含平台费）</span><span>${amountRangeFromSgd(totalFeeLow,totalFeeHigh,'SGD')}</span></div>
       </div><p class="price-source"><b>成交参考：</b>${sold?`<a class="sold-source" href="${esc(sold)}" target="_blank" rel="noopener">${esc(item.soldSource)} ↗</a>`:esc(item.soldSource || '请填写已成交记录来源')}<br>请使用近期同配置真实成交记录；工具按录入区间估算，不抓取平台在售标价。</p></section>
-      <div class="card-footer"><div class="max-buy"><small>最高建议买价 · 含目标利润 ${money(Number(item.targetProfit)||0)}</small><strong>${money(c.maxBuyCny,'CNY')}</strong></div><div class="card-actions"><button class="quiet-button edit-button" data-id="${esc(item.id)}">编辑</button><button class="quiet-button delete delete-button" data-id="${esc(item.id)}">删除</button></div></div>
+      <div class="card-footer"><div class="max-buy"><small>最高建议买价 · 含目标利润 ${amountFromSgd(Number(item.targetProfit)||0,'SGD')}</small><strong>${amountFromCny(c.maxBuyCny,'CNY')}</strong></div><div class="card-actions"><button class="quiet-button edit-button" data-id="${esc(item.id)}">编辑</button><button class="quiet-button delete delete-button" data-id="${esc(item.id)}">删除</button></div></div>
     </div>
   </article>`;
 }
 function render() {
   const sort = document.querySelector('#sortMode').value;
-  const sorted = [...listings].sort((a,b) => sort === 'date' ? b.createdAt-a.createdAt : calc(b).profitLow-calc(a).profitLow);
+  const sorted = [...listings].sort((a,b) => {
+    if (sort === 'date') return b.createdAt-a.createdAt;
+    if (sort === 'recommend') return recommendation(b,calc(b))-recommendation(a,calc(a));
+    if (sort === 'ask') return (Number(a.priceCny)||0)-(Number(b.priceCny)||0);
+    return calc(b).profitLow-calc(a).profitLow;
+  });
   const selected = listings.find(item => item.id === selectedListingId);
   grid.hidden = !!selected;
   document.querySelector('#detailView').hidden = !selected;
@@ -501,9 +559,23 @@ async function fetchRate() {
   updateRateText(); render();
 }
 function openDetail(id) {
+  if (!selectedListingId) {
+    feedScrollY = window.scrollY;
+    history.pushState({macbookFlipDetail:id,feedScrollY},'',`${location.pathname}${location.search}#item=${encodeURIComponent(id)}`);
+  }
   selectedListingId = id;
   render();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+function restoreFeed() {
+  selectedListingId = null;
+  render();
+  requestAnimationFrame(()=>window.scrollTo({top:feedScrollY,behavior:'instant'}));
+}
+function returnToFeed() {
+  if (!selectedListingId) return;
+  if (history.state?.macbookFlipDetail) history.back();
+  else restoreFeed();
 }
 function openForm(item) {
   form.reset();
@@ -584,9 +656,20 @@ document.querySelector('#syncNow').addEventListener('click', async event => {
 document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus==='error')fetchRate();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
 document.querySelector('.page-shell').addEventListener('click',async event=>{
+  const moneyButton=event.target.closest('.money-toggle');
+  if(moneyButton){event.preventDefault();updateAmountToggle(moneyButton);return;}
+  const sellerCopy=event.target.closest('[data-copy-seller]');
+  if(sellerCopy){
+    const name=sellerCopy.dataset.copySeller;
+    if(name){
+      try{await navigator.clipboard.writeText(name);toast('已复制卖家名字');}
+      catch{toast('复制失败，请长按卖家名字复制');}
+    }
+    return;
+  }
   const detailOpen=event.target.closest('[data-detail-open]');
   if(detailOpen){openDetail(detailOpen.dataset.id);return;}
-  if(event.target.closest('#backToFeed')){selectedListingId=null;render();window.scrollTo({top:0,behavior:'smooth'});return;}
+  if(event.target.closest('#backToFeed')){returnToFeed();return;}
   const imageOpen=event.target.closest('[data-image-open]');
   if(imageOpen){
     const card=imageOpen.closest('.listing-card');
@@ -617,6 +700,18 @@ document.querySelector('.page-shell').addEventListener('click',async event=>{
     await performRemoteDelete(item.id);
   }
 });
+window.addEventListener('popstate',()=>{if(selectedListingId)restoreFeed();});
+let detailSwipeStart=null;
+document.querySelector('#detailView').addEventListener('touchstart',event=>{
+  if(!selectedListingId||event.touches.length!==1||event.target.closest('.detail-cover,button,a,input,select')){detailSwipeStart=null;return;}
+  const touch=event.touches[0];detailSwipeStart={x:touch.clientX,y:touch.clientY};
+},{passive:true});
+document.querySelector('#detailView').addEventListener('touchend',event=>{
+  if(!detailSwipeStart||!event.changedTouches.length){detailSwipeStart=null;return;}
+  const touch=event.changedTouches[0],dx=touch.clientX-detailSwipeStart.x,dy=touch.clientY-detailSwipeStart.y;
+  detailSwipeStart=null;
+  if(Math.abs(dx)>90&&Math.abs(dx)>Math.abs(dy)*1.35)returnToFeed();
+},{passive:true});
 imageSizeToggle.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('load',()=>{imageDimensions.textContent=`${fullSizeImage.naturalWidth} × ${fullSizeImage.naturalHeight} px`;});

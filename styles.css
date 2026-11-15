@@ -108,6 +108,58 @@
 #githubTokenInput:focus{border-color:#86ad95;box-shadow:0 0 0 3px #e8f3eb}
 .token-security-note{margin:9px 0 19px;color:#8a9490;font-size:10px;line-height:1.55}
 .token-actions{align-items:center}
+.sort-select{position:relative;gap:7px;padding:7px 10px;border:1px solid #dfe4e1;border-radius:10px;background:#fff;color:#7a8580;font-size:11px}
+.sort-select select{appearance:none;min-width:100px;padding:0 16px 0 0;background:transparent;color:#25372d;font-weight:700;cursor:pointer}
+.sort-select::after{content:'⌄';position:absolute;right:10px;top:50%;transform:translateY(-55%);color:#718078;font-size:14px;pointer-events:none}
+.feed-title>span:last-child{display:block;overflow:visible;-webkit-line-clamp:unset;line-clamp:unset;overflow-wrap:anywhere}
+.feed-title{line-height:1.55}
+.feed-title .platform-badge,.feed-title-static .platform-badge{min-height:23px;padding:4px 8px;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:.15px}
+.platform-badge.xianyu{background:#fff0df;color:#a86019}
+.platform-badge.carousell{background:#e8f0ff;color:#315ea4}
+.platform-badge.other{background:#eceff0;color:#5d6a70}
+.feed-price-row{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;align-items:start}
+.sold-reference{display:grid;gap:2px;margin-top:4px;color:#78837e;font-size:9px;line-height:1.4}
+.sold-reference>small{color:#909a95;font-size:8px}
+.sold-reference>span{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px}
+.sold-reference i{font-style:normal;color:#909a95;font-size:8px}
+.money-toggle{display:inline-flex;align-items:baseline;gap:3px;max-width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;letter-spacing:inherit;text-align:inherit;white-space:nowrap;cursor:pointer}
+.money-toggle>span{color:#87958c;font-size:.65em;opacity:.65;transition:opacity .16s,color .16s}
+.money-toggle:hover>span,.money-toggle:focus-visible>span{opacity:1;color:#287548}
+.money-toggle:focus-visible{outline:2px solid #8ab79a;outline-offset:3px;border-radius:3px}
+.money-static{color:inherit;font:inherit;font-weight:inherit}
+.feed-price .sold-reference .money-toggle{font-size:inherit}
+.feed-profit .money-toggle{font-size:inherit}
+.recommend-score.rec-best{background:#e4f4eb;color:#167347}
+.recommend-score.rec-good{background:#e8efff;color:#365bb2}
+.recommend-score.rec-watch{background:#fff3dd;color:#a36a17}
+.recommend-score.rec-low{background:#edf0f1;color:#65727a}
+.recommend-score.rec-avoid{background:#f9e9e8;color:#ae4c49}
+.price-comparison .sold-reference{font-size:10px}
+.price-comparison .sold-reference>small{font-size:9px}
+.price-comparison .money-toggle{font-size:inherit}
+.detail-gallery-controls{position:absolute;inset:0;display:block;padding:0;pointer-events:none;transform:none}
+.detail-gallery-controls .gallery-arrows{display:contents}
+.detail-gallery-controls .gallery-button{position:absolute;top:50%;pointer-events:auto;width:46px;height:54px;transform:translateY(-50%);border-radius:14px;background:#18231dbd;color:#fff;box-shadow:0 3px 16px #17221e22;backdrop-filter:blur(8px)}
+.detail-gallery-controls .gallery-button:hover{transform:translateY(-50%) scale(1.04)}
+.detail-gallery-controls .gallery-button:first-child{left:14px}.detail-gallery-controls .gallery-button:last-child{right:14px}
+.detail-gallery-controls .gallery-count{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:5px 9px;border-radius:99px;background:#17221eb8;color:#fff;font-size:11px}
+.seller-copy{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:#355d46;font:inherit;font-weight:600;text-align:left;cursor:pointer}
+.seller-copy span{font-size:9px;color:#8b9990;opacity:.8}
+.seller-copy:hover{color:#167347}.seller-copy:hover span{opacity:1}
+.seller-copy:focus-visible{outline:2px solid #8ab79a;outline-offset:3px;border-radius:3px}
+@media(max-width:620px){
+  .sort-select{gap:4px;padding:6px 8px;font-size:10px}
+  .sort-select select{min-width:82px;font-size:11px}
+  .feed-title .platform-badge,.feed-title-static .platform-badge{min-height:19px;padding:3px 6px;font-size:9px}
+  .feed-title{line-height:1.5}
+  .feed-price-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto}
+  .sold-reference{font-size:8px}
+  .sold-reference>small{font-size:7px}
+  .sold-reference i{font-size:7px}
+  .detail-gallery-controls .gallery-button{width:38px;height:46px}
+  .detail-gallery-controls .gallery-button:first-child{left:8px}.detail-gallery-controls .gallery-button:last-child{right:8px}
+  .price-comparison .money-toggle{white-space:normal}
+}
 .token-actions #disconnectGithub{margin-right:auto}
 .token-actions button{font-size:12px}
 @media(max-width:620px){
