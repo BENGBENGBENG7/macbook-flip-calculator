@@ -5,9 +5,14 @@ const RATE_CACHE_KEY = 'macbook-flip-cny-sgd-rate-v1';
 const RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD';
 const LISTINGS_URL = './listings.json';
 const DELETED_LISTINGS_URL = './deleted-listings.json';
+const USER_STATE_URL = './user-state.json';
+const USER_ANALYSIS_KEY = 'macbook-flip-user-analysis-v1';
+const ANALYSIS_FIELDS = ['saleLow','saleHigh','sampleCount','soldSource','shippingSgd','repairSgd','feePercent','targetProfit'];
 const GITHUB_API_ROOT = 'https://api.github.com/repos/BENGBENGBENG7/macbook-flip-calculator';
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
-const SYNCED_LISTING_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+// No age-based expiry: listings.json is curated by the watch (sold/delisted items
+// are removed there), so a listing must stay visible until the watch removes it.
+// (An earlier 3-day TTL silently hid still-for-sale machines.)
 function loadRateCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(RATE_CACHE_KEY)||'null');
@@ -26,6 +31,8 @@ let githubToken = '';
 let pendingDeleteId = null;
 let githubTokenLoading = true;
 let feedScrollY = 0;
+let userStateDirty = false;
+let platformFilter = localStorage.getItem('macbook-flip-platform-filter') || 'all';
 const galleryIndexes = new Map();
 
 const grid = document.querySelector('#listingGrid');
@@ -62,6 +69,82 @@ function loadUserDeletedIds() {
   } catch { return new Set(); }
 }
 function saveUserDeletedIds(ids) { localStorage.setItem(USER_DELETED_IDS_KEY, JSON.stringify([...ids])); }
+function loadUserAnalysis() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(USER_ANALYSIS_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch { return {}; }
+}
+function saveUserAnalysis(map) { localStorage.setItem(USER_ANALYSIS_KEY, JSON.stringify(map)); }
+function analysisFromItem(item) {
+  const out = {};
+  for (const field of ANALYSIS_FIELDS) if (item[field] !== undefined && item[field] !== '' && item[field] !== null) out[field] = item[field];
+  return out;
+}
+function applyUserAnalysis(item, analysis) {
+  if (!analysis || typeof analysis !== 'object') return item;
+  for (const field of ANALYSIS_FIELDS) if (analysis[field] !== undefined && analysis[field] !== '' && analysis[field] !== null) item[field] = analysis[field];
+  return item;
+}
+function mergeAnalysisMaps(base, overlay) {
+  // Overlay wins only when its entry is newer (or the base entry has no timestamp),
+  // so two devices editing the same machine do not silently clobber each other.
+  const out = {...(base || {})};
+  for (const [id, fields] of Object.entries(overlay || {})) {
+    if (!fields || typeof fields !== 'object') continue;
+    const current = out[id];
+    if (!current || !current._updatedAt || (fields._updatedAt || 0) >= current._updatedAt) out[id] = {...current, ...fields};
+    else out[id] = {...fields, ...current};
+  }
+  return out;
+}
+async function fetchUserState() {
+  try {
+    const response = await fetch(`${USER_STATE_URL}?_=${Date.now()}`, {cache:'no-store'});
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    return payload && typeof payload === 'object' ? payload : null;
+  } catch (error) {
+    console.error('云端分析读取失败', error);
+    return null;
+  }
+}
+async function commitUserState() {
+  if (!githubToken) return false;
+  const localAnalysis = loadUserAnalysis();
+  for (let attempt=0; attempt<3; attempt+=1) {
+    try {
+      const ref = await githubRequest('/git/ref/heads/main');
+      const parentSha = ref.object.sha;
+      const head = await githubRequest(`/git/commits/${parentSha}`);
+      const remote = await readGithubJson('user-state.json', parentSha, true);
+      const merged = mergeAnalysisMaps(remote?.analysis, localAnalysis);
+      const content = JSON.stringify({version:1, updatedAt:new Date().toISOString(), analysis:merged}, null, 2) + '\n';
+      const blob = await githubRequest('/git/blobs', {method:'POST', body:JSON.stringify({content, encoding:'utf-8'})});
+      const tree = await githubRequest('/git/trees', {method:'POST', body:JSON.stringify({base_tree: head.tree.sha, tree: [{path:'user-state.json', mode:'100644', type:'blob', sha: blob.sha}]})});
+      const commit = await githubRequest('/git/commits', {method:'POST', body:JSON.stringify({message:'Sync Macbook flip analysis', tree: tree.sha, parents:[parentSha]})});
+      await githubRequest('/git/refs/heads/main', {method:'PATCH', body:JSON.stringify({sha: commit.sha, force:false})});
+      userStateDirty = false;
+      return true;
+    } catch (error) {
+      const concurrentUpdate = /GitHub (409|422):/.test(error.message);
+      if (!concurrentUpdate || attempt===2) throw error;
+    }
+  }
+  return false;
+}
+async function pushUserStateIfNeeded() {
+  if (!userStateDirty || !githubToken) return;
+  try {
+    const ok = await commitUserState();
+    if (ok) toast('分析已同步到 GitHub；其他设备下次同步时更新');
+  } catch (error) {
+    console.error('云端分析同步失败', error);
+    if (/GitHub 401:/.test(error.message)) await clearGithubToken();
+    toast('分析同步到 GitHub 失败：请检查令牌权限');
+  }
+}
 function makeDataBackup() {
   return {
     format: 'macbook-flip-backup',
@@ -69,6 +152,7 @@ function makeDataBackup() {
     exportedAt: new Date().toISOString(),
     listings,
     userDeletedIds: [...loadUserDeletedIds()],
+    userAnalysis: loadUserAnalysis(),
     expiredSyncIds: [...loadExpiredSyncIds()],
     rateCache: loadRateCache(),
   };
@@ -100,6 +184,11 @@ function importDataBackup(backup) {
   const deletedIds = loadUserDeletedIds();
   for (const id of Array.isArray(backup.userDeletedIds) ? backup.userDeletedIds : []) deletedIds.add(String(id));
   saveUserDeletedIds(deletedIds);
+  if (backup.userAnalysis && typeof backup.userAnalysis === 'object') {
+    const analysisMap = loadUserAnalysis();
+    for (const [id, fields] of Object.entries(backup.userAnalysis)) if (fields && typeof fields === 'object') analysisMap[id] = {...(analysisMap[id] || {}), ...fields};
+    saveUserAnalysis(analysisMap);
+  }
   const expiredIds = loadExpiredSyncIds();
   for (const id of Array.isArray(backup.expiredSyncIds) ? backup.expiredSyncIds : []) expiredIds.add(String(id));
   saveExpiredSyncIds(expiredIds);
@@ -134,7 +223,7 @@ async function loadGithubToken() {
 function updateGithubAuthButton() {
   const label = document.querySelector('#githubAuthText');
   const button = document.querySelector('#githubAuthButton');
-  if (label) label.textContent = githubToken ? '删除同步已授权' : '删除同步授权';
+  if (label) label.textContent = githubToken ? '云端同步已授权' : '云端同步授权';
   if (button) button.classList.toggle('connected', !!githubToken);
 }
 async function storeGithubToken(token) {
@@ -276,36 +365,14 @@ function loadExpiredSyncIds() {
 }
 function saveExpiredSyncIds(ids) { localStorage.setItem(EXPIRED_SYNC_IDS_KEY, JSON.stringify([...ids])); }
 function pruneExpiredListings(now=Date.now()) {
-  const expiredIds = loadExpiredSyncIds();
-  let removed = 0;
-  let newExpiredId = false;
-  listings = listings.filter(item => {
-    if (!item.syncManaged) return true;
-    const id = listingKey(item);
-    const firstSeenAt = timestamp(item.firstSeenAt || item.createdAt || item.created_at, now);
-    item.firstSeenAt = firstSeenAt;
-    if (expiredIds.has(id) || now - firstSeenAt >= SYNCED_LISTING_TTL_MS) {
-      if (!expiredIds.has(id)) { expiredIds.add(id); newExpiredId = true; }
-      removed += 1;
-      return false;
-    }
-    return true;
-  });
-  if (removed) saveListings();
-  if (newExpiredId) saveExpiredSyncIds(expiredIds);
-  return removed;
+  // No-op by design: no age-based expiry (see note where the TTL used to be).
+  // Listings leave the tool only when the watch removes them from listings.json,
+  // or when the user deletes them. Kept so existing callers keep working.
+  return 0;
 }
 function scheduleExpiryCheck() {
-  if (expiryTimer) clearTimeout(expiryTimer);
-  const expiries = listings
-    .filter(item => item.syncManaged)
-    .map(item => timestamp(item.firstSeenAt || item.createdAt, Date.now()) + SYNCED_LISTING_TTL_MS);
-  if (!expiries.length) return;
-  const delay = Math.max(1000, Math.min(...expiries) - Date.now() + 20);
-  expiryTimer = setTimeout(() => {
-    if (pruneExpiredListings()) render();
-    scheduleExpiryCheck();
-  }, delay);
+  // No-op by design: no age-based expiry (see pruneExpiredListings).
+  return;
 }
 function esc(value='') { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(value, currency='SGD') {
@@ -455,13 +522,13 @@ function toggleImageSize() {
 }
 async function syncListings() {
   updateSyncText('正在同步巡查数据…');
-  let expiredCount = pruneExpiredListings();
-  if (expiredCount) render();
+  pruneExpiredListings();
   try {
     const cacheKey = Date.now();
-    const [response,deletedResponse] = await Promise.all([
+    const [response,deletedResponse,userState] = await Promise.all([
       fetch(`${LISTINGS_URL}?_=${cacheKey}`, {cache:'no-store'}),
       fetch(`${DELETED_LISTINGS_URL}?_=${cacheKey}`, {cache:'no-store'}),
+      fetchUserState(),
     ]);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
@@ -470,30 +537,26 @@ async function syncListings() {
     const deletedPayload = deletedResponse.ok ? await deletedResponse.json() : [];
     const allDeletedIds = deletedIdsFromPayload(deletedPayload);
     const currentByKey = new Map(listings.map(item => [listingKey(item), item]));
-    const expiredIds = loadExpiredSyncIds();
     const userDeletedIds = loadUserDeletedIds();
     const synced = [];
-    const now = Date.now();
     for (const raw of rows.filter(item => item && typeof item === 'object')) {
       const normalized = normalizeFeedItem(raw);
       const item = preserveAnalysis(normalized, currentByKey.get(listingKey(normalized)));
       const id = listingKey(item);
       if (allDeletedIds.has(id) || userDeletedIds.has(id)) continue;
-      const wasExpired = expiredIds.has(id);
-      if (wasExpired || now - timestamp(item.firstSeenAt, now) >= SYNCED_LISTING_TTL_MS) {
-        if (!wasExpired) { expiredIds.add(id); expiredCount += 1; }
-        continue;
-      }
       synced.push(item);
     }
-    saveExpiredSyncIds(expiredIds);
     const manual = listings.filter(item => !item.syncManaged);
     listings = [...manual.filter(item => !allDeletedIds.has(listingKey(item)) && !userDeletedIds.has(listingKey(item))), ...synced];
+    // 云端分析（另一台设备改过的成交参考、费用等）按时间合并后覆盖本地。
+    const mergedAnalysis = mergeAnalysisMaps(loadUserAnalysis(), userState?.analysis);
+    saveUserAnalysis(mergedAnalysis);
+    for (const item of listings) applyUserAnalysis(item, mergedAnalysis[listingKey(item)]);
     saveListings();
-    scheduleExpiryCheck();
     const time = new Intl.DateTimeFormat('zh-SG', {hour:'2-digit',minute:'2-digit'}).format(new Date());
-    updateSyncText(`已同步 ${synced.length} 条${expiredCount ? ` · 已清理过期 ${expiredCount} 条` : ''} · ${time}`);
+    updateSyncText(`已同步 ${synced.length} 条 · ${time}`);
     render();
+    pushUserStateIfNeeded();
     return true;
   } catch (error) {
     console.error('巡查数据同步失败', error);
@@ -602,7 +665,9 @@ function renderDetail(item) {
 }
 function render() {
   const sort = document.querySelector('#sortMode').value;
-  const sorted = [...listings].sort((a,b) => {
+  const filter = document.querySelector('#platformFilter')?.value || platformFilter;
+  const visible = filter === 'all' ? listings : listings.filter(item => item.platform === filter);
+  const sorted = [...visible].sort((a,b) => {
     if (sort === 'date') return b.createdAt-a.createdAt;
     if (sort === 'recommend') return recommendation(b,calc(b))-recommendation(a,calc(a));
     if (sort === 'ask') return (Number(a.priceCny)||0)-(Number(b.priceCny)||0);
@@ -613,8 +678,8 @@ function render() {
   document.querySelector('#detailView').hidden = !selected;
   document.querySelector('#detailView').innerHTML = selected ? renderDetail(selected) : '';
   grid.innerHTML = selected ? '' : sorted.map(renderCard).join('');
-  document.querySelector('#listingCount').textContent = `${listings.length} 台商品`;
-  document.querySelector('#emptyState').classList.toggle('visible', listings.length===0 && !selected);
+  document.querySelector('#listingCount').textContent = filter === 'all' ? `${listings.length} 台商品` : `${visible.length} 台商品 · ${filter}`;
+  document.querySelector('#emptyState').classList.toggle('visible', visible.length===0 && !selected);
 }
 function updateRateText() {
   const el = document.querySelector('#rateText');
@@ -676,6 +741,8 @@ function openForm(item) {
 document.querySelector('#closeDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#cancelDialog').addEventListener('click',()=>dialog.close());
 document.querySelector('#sortMode').addEventListener('change',()=>{render();window.scrollTo({top:0,behavior:'smooth'});});
+document.querySelector('#platformFilter').addEventListener('change',event=>{platformFilter=event.target.value;localStorage.setItem('macbook-flip-platform-filter',platformFilter);render();window.scrollTo({top:0,behavior:'smooth'});});
+document.querySelector('#platformFilter').value = platformFilter;
 const backupDialog = document.querySelector('#backupDialog');
 document.querySelector('#backupData').addEventListener('click',()=>backupDialog.showModal());
 document.querySelector('#closeBackupDialog').addEventListener('click',()=>backupDialog.close());
@@ -840,8 +907,20 @@ form.addEventListener('submit',event=>{
   const index=listings.findIndex(item=>item.id===data.id);
   data.id=data.id||crypto.randomUUID(); data.createdAt=index>=0?listings[index].createdAt:Date.now(); data.firstSeenAt=index>=0?(listings[index].firstSeenAt||listings[index].createdAt||Date.now()):Date.now(); data.syncManaged=index>=0?!!listings[index].syncManaged:false;
   if(index>=0)listings[index]=data;else listings.push(data);
-  saveListings();render();dialog.close();
+  saveListings();
+  const editedAnalysis = analysisFromItem(data);
+  if (Object.keys(editedAnalysis).length) {
+    const analysisMap = loadUserAnalysis();
+    analysisMap[data.id] = {...(analysisMap[data.id] || {}), ...editedAnalysis, _updatedAt: Date.now()};
+    saveUserAnalysis(analysisMap);
+    userStateDirty = true;
+  }
+  render();dialog.close();
+  pushUserStateIfNeeded();
 });
 function toast(message){const el=document.createElement('div');el.className='toast';el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),2200);}
 pruneExpiredListings();
-render(); scheduleExpiryCheck(); loadGithubToken(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);
+render();
+const initialItemId = new URLSearchParams(location.hash.slice(1)).get('item');
+if (initialItemId && listings.some(item => item.id === initialItemId)) openDetail(initialItemId);
+scheduleExpiryCheck(); loadGithubToken(); fetchRate(); syncListings(); setInterval(syncListings, SYNC_INTERVAL_MS);
