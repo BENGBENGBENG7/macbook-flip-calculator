@@ -1,0 +1,8 @@
+node_modules/
+docs/
+*.tsbuildinfo*
+.DS_Store
+.env*
+*backup*.json
+exportData*.json
+user-data.json
