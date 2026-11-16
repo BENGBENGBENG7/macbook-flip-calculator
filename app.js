@@ -30,8 +30,7 @@ let cnyToSgd = cachedRate?.rate || null;
 let rateDate = cachedRate?.date || '';
 let rateStatus = cachedRate ? 'cached' : 'loading';
 let syncStatus = '正在同步巡查数据…';
-let selectedListingId = new URLSearchParams(location.hash.slice(1)).get('item') || null;
-let displayCurrency = localStorage.getItem('macbook-flip-currency') === 'CNY' ? 'CNY' : 'SGD';
+let selectedListingId = null;
 let githubToken = '';
 let pendingDeleteId = null;
 let githubTokenLoading = true;
@@ -50,8 +49,6 @@ const fullSizeImage = document.querySelector('#fullSizeImage');
 const imageDimensions = document.querySelector('#imageDimensions');
 const imageSizeToggle = document.querySelector('#imageSizeToggle');
 const imageCounter = document.querySelector('#imageCounter');
-const imageThumbnails = document.querySelector('#imageThumbnails');
-let viewerTouchStart = null;
 const previousViewerImage = document.querySelector('#previousViewerImage');
 const nextViewerImage = document.querySelector('#nextViewerImage');
 let viewerImages = [];
@@ -462,11 +459,10 @@ function money(value, currency='SGD') {
   return new Intl.NumberFormat('zh-SG', {style:'currency',currency,maximumFractionDigits:0}).format(value);
 }
 function amountToggle(cny, sgd, currency='SGD', className='') {
-  currency = displayCurrency;
   const finiteCny = Number.isFinite(Number(cny));
   const finiteSgd = Number.isFinite(Number(sgd));
   if (!finiteCny || !finiteSgd) {
-    const available = finiteCny ? money(Number(cny),'CNY') : finiteSgd ? money(Number(sgd),'SGD') : '—';
+    const available = currency === 'CNY' && finiteCny ? money(Number(cny),'CNY') : currency === 'SGD' && finiteSgd ? money(Number(sgd),'SGD') : '—';
     return `<span class="money-static ${className}">${available}</span>`;
   }
   const value = currency === 'CNY' ? Number(cny) : Number(sgd);
@@ -482,7 +478,6 @@ function amountFromSgd(sgd, currency='SGD', className='') {
   return amountToggle(Number.isFinite(cnyToSgd) && cnyToSgd ? value/cnyToSgd : NaN, value, currency, className);
 }
 function amountRangeFromSgd(low, high, currency='SGD', className='') {
-  currency = displayCurrency;
   const lowValue = Number(low), highValue = Number(high);
   if (!Number.isFinite(lowValue) || !Number.isFinite(highValue)) return `<span class="money-static ${className}">—</span>`;
   if (!Number.isFinite(cnyToSgd) || !cnyToSgd) return `<span class="money-static ${className}">${money(lowValue,'SGD')} – ${money(highValue,'SGD')}</span>`;
@@ -603,8 +598,6 @@ function showViewerImage() {
   previousViewerImage.hidden = viewerImages.length < 2;
   nextViewerImage.hidden = viewerImages.length < 2;
   imageSizeToggle.textContent = '查看原尺寸（100%）';
-  imageThumbnails.innerHTML = viewerImages.map((src, i) => `<button type="button" class="image-thumbnail${i===viewerIndex?' active':''}" data-index="${i}" aria-label="查看第 ${i+1} 张照片" aria-current="${i===viewerIndex?'true':'false'}"><img src="${esc(src)}" alt="" loading="lazy"></button>`).join('');
-  imageThumbnails.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'nearest'});
   imageDialog.scrollTop = 0;
 }
 function stepViewerImage(amount) {
@@ -707,7 +700,7 @@ function suggestedBuyLabel(item,c) {
 function soldReference(item,c) {
   if (!(c.low > 0 || c.high > 0)) return '';
   const average = (c.low+c.high)/2;
-  return `<div class="sold-reference"><small>${Number(item.sampleCount)>0?'成交参考':'估算参考（无成交样本）'}</small><span>${amountRangeFromSgd(c.low,c.high,'SGD')} <i>区间中值</i> ${amountFromSgd(average,'SGD')}</span></div>`;
+  return `<div class="sold-reference"><small>成交参考</small><span>${amountRangeFromSgd(c.low,c.high,'SGD')} <i>均价</i> ${amountFromSgd(average,'SGD')}</span></div>`;
 }
 function recommendationTone(score, decision) {
   if (decision === 'red') return 'rec-avoid';
@@ -733,7 +726,7 @@ function renderCard(item) {
       ${images.length>1?`<span class="feed-image-count">${uiIcon('photo')}${images.length} 张照片</span>`:''}
     </button>
     <div class="feed-card-content">
-      <div class="feed-meta-row"><span class="platform-badge ${platformStyle(item)}">${esc(item.platform||'未注明平台')}</span><span class="decision ${decision}">${({green:'可以买',yellow:'谨慎评估',red:'建议不买'})[decision]}</span><span class="recommend-score ${recTone}" title="推荐指数按利润率与成交样本量估算，用于相对比较"><small>推荐</small><strong>${score}<small>%</small></strong></span></div>
+      <div class="feed-meta-row"><span class="platform-badge ${platformStyle(item)}">${esc(item.platform||'未注明平台')}</span><span class="recommend-score ${recTone}" title="推荐指数按利润率与成交样本量估算，用于相对比较"><small>推荐</small><strong>${score}<small>%</small></strong></span></div>
       <button type="button" class="feed-title" data-detail-open data-id="${esc(item.id)}" title="${esc(description)}">${esc(description)}</button>
       <div class="feed-price-row"><div class="feed-price asking"><small>商品挂价</small><strong>${listingPriceLabel(item,c)}</strong></div><div class="feed-price target"><small>建议购入</small><strong>${suggestedBuyLabel(item,c)}</strong></div></div>
       <div class="feed-sold-reference">${soldReference(item,c)}</div>
@@ -762,7 +755,7 @@ function renderDetail(item) {
     <div class="card-content detail-card-content">
       <div class="card-heading detail-heading"><div class="feed-title-static"><span class="platform-badge ${platformClass}">${esc(platformLabel)}</span><h2 tabindex="-1">${esc(listingHeadline(item))}</h2></div><span class="decision ${decision}">${labels[decision]}</span></div>
       <div class="price-comparison"><div class="asking-cell"><small>商品挂价</small><strong class="asking-price">${listingPriceLabel(item,c)}</strong></div><div><small>建议购入价</small><strong class="buy-price">${suggestedBuyLabel(item,c)}</strong>${Number.isFinite(c.maxBuyCny) && Number(item.priceCny)>0 && c.maxBuyCny>Number(item.priceCny)?'<small class="buy-note">挂价已低于可接受上限，按挂价买即可</small>':''}</div><div class="comparison-reference">${soldReference(item,c)}</div><div class="comparison-profit"><small>预计利润区间</small><strong class="${c.profitLow>=0?'pos':'neg'}">${amountRangeFromSgd(c.profitLow,c.profitHigh,'SGD')}</strong></div></div>
-      <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>${esc(item.sampleCount ?? 0)} 个成交样本 · 按利润率与样本量排序，不代表成交概率${decision==='yellow'?'；样本或利润仍需核实':''}</span></p>
+      <p class="recommend-line"><span class="recommend-score ${recTone}"><small>推荐指数</small><strong>${score}<small>%</small></strong></span><span>${esc(item.sampleCount || 1)} 个成交样本 · 按利润率与样本量排序，不代表成交概率${decision==='yellow'?'；样本或利润仍需核实':''}</span></p>
       <p class="seller-line">卖家：<button type="button" class="seller-copy" data-copy-seller="${esc(sellerNameOnly(item.sellerName || item.nickname || item.username || item.seller || ''))}" title="点击复制卖家名字">${esc(item.seller || '未填写')}<span aria-hidden="true">${uiIcon('copy')}复制</span></button></p>
       ${listing?`<a class="product-link" href="${esc(listing)}" target="_blank" rel="noopener"><span class="product-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 6H18v4.5M18 6l-8 8"/><path d="M17 13v5H6V7h5"/></svg></span><span class="product-link-copy"><strong>打开商品页面</strong><small>${esc(new URL(listing).hostname)}</small></span><span class="product-link-arrow" aria-hidden="true">${uiIcon('external')}</span></a>`:''}
       <section class="detail-section"><h3 class="section-title">商品原描述</h3><p class="original-description">${esc(item.description || '未填写')}</p></section>
@@ -781,7 +774,6 @@ function renderDetail(item) {
   </article>`;
 }
 function render() {
-  document.querySelector('#currencyToggle').textContent = `币种：${displayCurrency}`;
   const sort = document.querySelector('#sortMode').value;
   const filter = document.querySelector('#platformFilter').value;
   document.querySelectorAll('[data-platform-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.platformFilter===filter)));
@@ -807,12 +799,6 @@ function render() {
   if(filtered.length===0 && listings.length>0){emptyState.querySelector('h2').textContent='这个平台暂无巡查商品';}
   else if(!selected){emptyState.querySelector('h2').textContent=/失败/.test(syncStatus)?'巡查数据暂时无法读取':'暂时没有巡查商品';}
 }
-function setDisplayCurrency(currency) {
-  displayCurrency = currency;
-  try { localStorage.setItem('macbook-flip-currency', currency); } catch {}
-  render();
-}
-document.querySelector('#currencyToggle').addEventListener('click',()=>setDisplayCurrency(displayCurrency === 'SGD' ? 'CNY' : 'SGD'));
 function updateRateText() {
   const el = document.querySelector('#rateText');
   document.querySelector('.rate-pill').dataset.state=rateStatus;
@@ -862,7 +848,7 @@ function restoreFeed() {
 function returnToFeed() {
   if (!selectedListingId) return;
   if (history.state?.macbookFlipDetail) history.back();
-  else { history.replaceState(null, '', `${location.pathname}${location.search}`); restoreFeed(); }
+  else restoreFeed();
 }
 function openForm(item) {
   form.reset();
@@ -991,7 +977,7 @@ document.querySelector('.rate-pill').addEventListener('click',()=>{if(rateStatus
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') syncListings();});
 document.querySelector('.page-shell').addEventListener('click',async event=>{
   const moneyButton=event.target.closest('.money-toggle');
-  if(moneyButton){event.preventDefault();setDisplayCurrency(displayCurrency === 'SGD' ? 'CNY' : 'SGD');return;}
+  if(moneyButton){event.preventDefault();updateAmountToggle(moneyButton);return;}
   const sellerCopy=event.target.closest('[data-copy-seller]');
   if(sellerCopy){
     const name=sellerCopy.dataset.copySeller;
@@ -1043,12 +1029,7 @@ document.querySelector('#confirmDelete').addEventListener('click',async()=>{
   if(!githubToken){openGithubAuthDialog();return;}
   await performRemoteDelete(id);
 });
-window.addEventListener('popstate',()=>{if(selectedListingId && !new URLSearchParams(location.hash.slice(1)).get('item'))restoreFeed();});
-window.addEventListener('hashchange',()=>{
-  const id=new URLSearchParams(location.hash.slice(1)).get('item');
-  if(id && id!==selectedListingId){selectedListingId=id;render();window.scrollTo({top:0,behavior:'instant'});}
-  else if(!id && selectedListingId)restoreFeed();
-});
+window.addEventListener('popstate',()=>{if(selectedListingId)restoreFeed();});
 let detailSwipeStart=null;
 document.querySelector('#detailView').addEventListener('touchstart',event=>{
   if(!selectedListingId||event.touches.length!==1||event.target.closest('.detail-cover,button,a,input,select')){detailSwipeStart=null;return;}
@@ -1064,11 +1045,6 @@ imageSizeToggle.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('click',toggleImageSize);
 fullSizeImage.addEventListener('load',()=>{imageDimensions.textContent=`${fullSizeImage.naturalWidth} × ${fullSizeImage.naturalHeight} px`;});
 fullSizeImage.addEventListener('error',()=>{imageDimensions.textContent='图片加载失败，可切换其他照片或关闭重试';});
-imageThumbnails.addEventListener('click',event=>{ const thumb=event.target.closest('[data-index]'); if (thumb) { viewerIndex=Number(thumb.dataset.index); showViewerImage(); } });
-imageViewerStage.addEventListener('touchstart',event=>{ if(event.touches.length !== 1 || imageViewerStage.classList.contains('actual-size') || event.target.closest('button')) { viewerTouchStart=null; return; } viewerTouchStart={x:event.touches[0].clientX,y:event.touches[0].clientY}; },{passive:true});
-imageViewerStage.addEventListener('touchmove',event=>{ if(event.touches.length !== 1) viewerTouchStart=null; },{passive:true});
-imageViewerStage.addEventListener('touchend',event=>{ if(!viewerTouchStart || !event.changedTouches.length || event.touches.length) { viewerTouchStart=null; return; } const dx=event.changedTouches[0].clientX-viewerTouchStart.x, dy=event.changedTouches[0].clientY-viewerTouchStart.y; viewerTouchStart=null; if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.4) stepViewerImage(dx<0?1:-1); },{passive:true});
-imageViewerStage.addEventListener('touchcancel',()=>{viewerTouchStart=null;},{passive:true});
 previousViewerImage.addEventListener('click',()=>stepViewerImage(-1));
 nextViewerImage.addEventListener('click',()=>stepViewerImage(1));
 imageDialog.addEventListener('keydown',event=>{

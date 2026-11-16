@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Macbook flip">
   <meta name="description" content="MacBook Pro 翻新买卖核算工具：实时汇率、费用明细、成交价估算与利润排序。">
   <title>Macbook flip</title>
-  <link rel="stylesheet" href="styles.css?v=mobile-redesign-20261116">
+  <link rel="stylesheet" href="styles.css?v=design-review-20261115-final">
   <link rel="icon" href="logo.svg?v=design-review-20261115-final" type="image/svg+xml">
   <link rel="icon" href="favicon-macbook.png?v=design-review-20261115-final" sizes="64x64" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-macbook.png?v=design-review-20261115-final">
@@ -34,7 +34,7 @@
 
   <main id="top" class="page-shell">
     <section class="toolbar" aria-label="列表工具">
-      <div class="toolbar-copy"><div><p class="section-kicker">MACBOOK FLIP</p><h1>巡查列表</h1></div><strong id="listingCount">0 台商品</strong></div>
+      <div class="toolbar-copy"><h1>巡查列表</h1><strong id="listingCount">0 台商品</strong></div>
       <div class="toolbar-controls">
         <div class="platform-tabs" role="group" aria-label="平台筛选">
           <button type="button" class="platform-tab" data-platform-filter="all" aria-pressed="true">全部</button>
@@ -42,7 +42,7 @@
           <button type="button" class="platform-tab" data-platform-filter="carousell" aria-pressed="false">Carousell</button>
         </div>
         <select id="platformFilter" hidden aria-hidden="true" tabindex="-1"><option value="all">全部</option><option value="xianyu">闲鱼</option><option value="carousell">Carousell</option></select>
-        <button type="button" id="currencyToggle" class="currency-control" aria-label="切换所有金额的币种">币种：SGD</button><label class="sort-select"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h11M4 19h6"/></svg><span>排序</span><select id="sortMode" aria-label="排序方式"><option value="profit">利润优先</option><option value="recommend">推荐优先</option><option value="ask">挂价从低到高</option><option value="date">最近添加</option></select></label>
+        <label class="sort-select"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h11M4 19h6"/></svg><span>排序</span><select id="sortMode" aria-label="排序方式"><option value="profit">利润优先</option><option value="recommend">推荐优先</option><option value="ask">挂价从低到高</option><option value="date">最近添加</option></select></label>
       </div>
     </section>
 
@@ -56,7 +56,7 @@
       <div class="dialog-head"><div><h2 id="dialogTitle">添加商品</h2></div><button type="button" class="icon-button close-button" id="closeDialog" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <input type="hidden" id="listingId" name="id">
       <div class="form-section"><h3>新加坡已成交参考</h3><p class="section-hint">录入近期真实成交价（新币）。建议填写同配置的低价与高价；可附成交记录链接。</p>
-        <div class="form-grid"><label>成交低价（S$）<input name="saleLow" type="number" min="0" step="1" required placeholder="例如 1800"></label><label>成交高价（S$）<input name="saleHigh" type="number" min="0" step="1" required placeholder="例如 2100"></label><label>成交样本数<input name="sampleCount" type="number" min="0" step="1" value="1"></label><label>样本来源 / 链接<input name="soldSource" placeholder="平台、成交日期或链接"></label></div>
+        <div class="form-grid"><label>成交低价（S$）<input name="saleLow" type="number" min="0" step="1" required placeholder="例如 1800"></label><label>成交高价（S$）<input name="saleHigh" type="number" min="0" step="1" required placeholder="例如 2100"></label><label>成交样本数<input name="sampleCount" type="number" min="1" step="1" value="1"></label><label>样本来源 / 链接<input name="soldSource" placeholder="平台、成交日期或链接"></label></div>
       </div>
       <div class="form-section"><h3>费用与判断参数</h3><div class="form-grid">
         <label>跨境运输（新币）<input name="shippingSgd" type="number" min="0" step="1" value="35"></label>
@@ -114,8 +114,8 @@
       <div class="image-viewer-actions"><button type="button" class="image-size-toggle" id="imageSizeToggle">查看原尺寸（100%）</button><button type="button" class="image-viewer-close" id="closeImageViewer" aria-label="关闭原图"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
     </div>
     <div id="imageViewerStage" class="image-viewer-stage"><button type="button" id="previousViewerImage" class="image-viewer-nav previous" aria-label="上一张照片" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><img id="fullSizeImage" alt="商品原图" title="点击切换显示比例"><button type="button" id="nextViewerImage" class="image-viewer-nav next" aria-label="下一张照片" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>
-    <div id="imageThumbnails" class="image-thumbnails" aria-label="选择商品照片"></div><p class="image-viewer-hint">左右滑动或使用方向键切换 · 双指缩放</p>
+    <p class="image-viewer-hint">使用左右按钮切换照片 · 点击照片切换原尺寸 · 可双指缩放</p>
   </dialog>
-  <script src="app.js?v=mobile-redesign-20261116"></script>
+  <script src="app.js?v=design-review-20261115-final"></script>
 </body>
 </html>
