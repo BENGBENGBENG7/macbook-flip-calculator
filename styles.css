@@ -134,6 +134,21 @@ svg { display: block; width: 20px; height: 20px; flex: none; fill: none; stroke:
 .feed-sold-reference { min-height: 36px; }
 .feed-profit { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; min-height: 44px; padding-top: 12px; margin-top: auto; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
 .feed-profit strong { font-size: 18px; line-height: 1.4; font-weight: 650; font-variant-numeric: tabular-nums; }
+@media (min-width: 1100px) {
+  .listing-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .feed-card { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 190px; }
+  .feed-image { height: 100%; min-height: 190px; aspect-ratio: auto; }
+  .feed-card-content { display: grid; grid-template-columns: minmax(220px, 1.3fr) minmax(150px, .8fr) minmax(190px, 1fr) minmax(160px, .9fr); align-items: center; gap: 10px 22px; padding: 18px 24px; }
+  .feed-meta-row { grid-column: 1; justify-content: flex-start; gap: 10px; }
+  .feed-title { grid-column: 1; min-height: auto; max-height: 48px; font-size: 17px; }
+  .feed-price-row { grid-column: 2; grid-row: 1 / span 2; grid-template-columns: 1fr; gap: 8px; margin: 0; padding-inline: 18px; border-inline: 1px solid var(--line); }
+  .feed-price { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .feed-price > small { white-space: nowrap; }
+  .feed-price > strong { font-size: 19px; }
+  .feed-sold-reference { grid-column: 3; grid-row: 1 / span 2; min-height: 0; }
+  .feed-profit { grid-column: 4; grid-row: 1 / span 2; align-self: stretch; flex-direction: column; justify-content: center; align-items: flex-start; gap: 4px; min-height: 0; padding: 0 0 0 20px; margin: 0; border-top: 0; border-left: 1px solid var(--line); }
+  .feed-profit strong { font-size: 22px; }
+}
 .pos { color: var(--green); }
 .neg { color: var(--red); }
 .recommend-score { display: inline-flex; align-items: baseline; justify-content: center; gap: 5px; padding: 4px 8px; border-radius: 6px; color: var(--muted); background: var(--surface); white-space: nowrap; }
