@@ -2628,12 +2628,13 @@ export function App() {
             </div>
             <button
               type="button"
-              aria-label="刷新机器清单"
-              disabled={state.isFetching}
+              aria-label="同步机器清单和汇率"
+              title="同步机器清单和汇率"
+              disabled={state.isFetching || rateQuery.isFetching}
               className="glass-green min-w-0 flex-1 rounded-full border border-[var(--btn-green)] px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight text-white sm:px-2 sm:text-sm sm:tracking-normal"
               onClick={() => { void state.refetch(); void rateQuery.refetch(); }}
             >
-              {state.isFetching ? "刷新中" : "刷新"}
+              {state.isFetching || rateQuery.isFetching ? "同步中" : "同步"}
             </button>
           </div>
         </div>
