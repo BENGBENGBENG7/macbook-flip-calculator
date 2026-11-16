@@ -298,11 +298,17 @@ function Card({
   rate,
   onOpen,
   onToggleLike,
+  multiSelect,
+  isSelected,
+  onToggleSelect,
 }: {
   listing: Listing;
   rate: number | null;
   onOpen: (l: Listing) => void;
   onToggleLike: (l: Listing) => void;
+  multiSelect: boolean;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const c = calc(listing, rate);
   const img = listing.images[0];
@@ -329,7 +335,16 @@ function Card({
           ) : null}
         </div>
       </button>
-      <div className="flex w-full flex-1 flex-col px-5 pb-3 pt-4">
+      <div
+        className="relative flex w-full flex-1 flex-col pb-3 pr-5 pt-4 transition-[padding-left] duration-200 ease-out"
+        style={{ paddingLeft: multiSelect ? 56 : 20 }}
+      >
+        <SelectCheckbox
+          visible={multiSelect}
+          selected={isSelected}
+          label={isSelected ? `取消选择 ${title(listing)}` : `选择 ${title(listing)}`}
+          onToggle={() => onToggleSelect(listing.id)}
+        />
         <div className="flex items-start justify-between gap-2">
           <button
             type="button"
@@ -406,18 +421,33 @@ function ListRow({
   rate,
   onOpen,
   onToggleLike,
+  multiSelect,
+  isSelected,
+  onToggleSelect,
 }: {
   listing: Listing;
   rate: number | null;
   onOpen: (l: Listing) => void;
   onToggleLike: (l: Listing) => void;
+  multiSelect: boolean;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const c = calc(listing, rate);
   const profitColor = c.verdict
     ? (VERDICT_TEXT[c.verdict] ?? "text-[var(--text)]")
     : "text-[var(--text)]";
   return (
-    <article className="cv-row flex items-stretch gap-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] py-3 pl-4 pr-3">
+    <article
+      className="cv-row relative flex items-stretch gap-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] py-3 pr-3 transition-[padding-left] duration-200 ease-out"
+      style={{ paddingLeft: multiSelect ? 56 : 16 }}
+    >
+      <SelectCheckbox
+        visible={multiSelect}
+        selected={isSelected}
+        label={isSelected ? `取消选择 ${title(listing)}` : `选择 ${title(listing)}`}
+        onToggle={() => onToggleSelect(listing.id)}
+      />
       <button
         type="button"
         aria-label={`查看 ${title(listing)} 详情`}
@@ -475,30 +505,147 @@ function ListRow({
 
 const MemoListRow = memo(ListRow);
 
+/* ---------- multi-select checkbox (inside the card frame) --------------
+   Rendered inside each card's text area, absolutely positioned at the
+   left edge. Fixed 28x28, flex:none, border-radius 50% — absolute
+   positioning plus pinned size means flex can never stretch it into
+   an oval, at any card height. Selected: green fill + white check;
+   unselected: faint outline. Hidden (opacity 0, no pointer events)
+   outside multi-select mode. */
+function SelectCheckbox({
+  visible,
+  selected,
+  label,
+  onToggle,
+}: {
+  visible: boolean;
+  selected: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-ms-checkbox
+      aria-label={label}
+      aria-checked={selected}
+      aria-hidden={!visible}
+      tabIndex={visible ? 0 : -1}
+      className={`absolute left-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border-2 text-base font-semibold leading-none transition-all duration-200 ease-out ${
+        visible ? "scale-100 opacity-100" : "scale-75 opacity-0"
+      }`}
+      style={{
+        width: 28,
+        height: 28,
+        flex: "none",
+        borderRadius: "50%",
+        pointerEvents: visible ? "auto" : "none",
+        ...(selected
+          ? { backgroundColor: "var(--btn-green)", borderColor: "var(--btn-green)", color: "#fff" }
+          : { borderColor: "var(--faint)", color: "transparent", backgroundColor: "transparent" }),
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      ✓
+    </button>
+  );
+}
+
+/* ---------- centred delete confirm modal (home list only) ------------
+   Replaces the old inline two-step confirm (which rewrote the Delete
+   button's own label). Tapping Delete — swipe single or the multi-select
+   toolbar — opens this modal. Confirm (left, solid delete red) deletes;
+   Cancel (right, green frosted glass) or the mask closes without
+   deleting. The detail page keeps its own inline confirm; untouched. */
+type DeleteConfirm =
+  | { kind: "single"; listing: Listing }
+  | { kind: "bulk"; count: number };
+
+function DeleteConfirmModal({
+  confirm,
+  onConfirm,
+  onCancel,
+}: {
+  confirm: DeleteConfirm;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+  const message =
+    confirm.kind === "single"
+      ? "确认删除这台机器？"
+      : `确认删除已选的 ${confirm.count} 台机器？`;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      role="alertdialog"
+      aria-modal="true"
+      aria-label={message}
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-black/40"
+        onClick={onCancel}
+      />
+      <div className="glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] p-5">
+        <p className="text-center text-base font-medium text-[var(--text)]">{message}</p>
+        <div className="mt-5 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            aria-label="确认删除"
+            className="rounded-full px-6 py-3 text-sm font-medium text-white transition-all duration-200 ease-out"
+            style={{ backgroundColor: "var(--verdict-red)" }}
+            onClick={onConfirm}
+          >
+            确认
+          </button>
+          <button
+            type="button"
+            aria-label="取消删除"
+            className="glass-green rounded-full border border-[var(--btn-green)] px-6 py-3 text-sm font-medium text-white transition-all duration-200 ease-out"
+            onClick={onCancel}
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- home list item: swipe-to-delete + long-press multi-select -----
    One wrapper around a list item (Card in single mode, ListRow in multi
    mode) that adds three gestures which must not interfere:
    - short tap: open detail (normal mode) / toggle selection (multi-select)
-   - horizontal left swipe: reveal a red delete button (normal mode only)
-   - long-press 1.5s: enter multi-select, this item auto-selected
-   Layout: a flex row of a checkbox gutter + the swipe area. The gutter
-   is always mounted with width 0 when closed and 40px when
-   multi-selecting; that width transition is what slides the item right
-   on enter and back to its place on exit — no jump either way — and the
-   checkbox fades/scales in with it. The swipe area holds the delete
+   - horizontal left swipe: reveal a red delete button (normal mode only);
+     tapping it opens a centred confirm modal (see DeleteConfirmModal)
+   - long-press 1s: enter multi-select, this item auto-selected
+   Layout: the card frame never moves. The checkbox lives inside the
+   frame, at the left of the card's text area (see SelectCheckbox); the
+   text's left padding grows 20/16px -> 56px on enter and back on exit,
+   so only the text slides right/left inside the frame — smooth both
+   ways via a 200ms padding transition. The swipe area holds the delete
    action layer behind the item; the item translates left to reveal it.
-   Delete reuses the detail page's red (var(--verdict-red)) and its
-   two-step confirm copy, and only appends to localStorage deletions
-   (via onDelete) — listings.json is never written.
-   touch-action: pan-y lets vertical scrolls work natively; horizontal
-   drags reach the JS handlers. No preventDefault: the browser never
-   starts a horizontal scroll, so the swipe works without it. */
+   Delete only appends to localStorage deletions (via onDelete, which
+   opens the confirm modal) — listings.json is never written.
+   The row is a no-select surface (user-select/callout off, selectstart
+   + contextmenu prevented) so a long-press never triggers the OS text
+   selection handles. touch-action: pan-y lets vertical scrolls work
+   natively; horizontal drags reach the JS handlers. No preventDefault:
+   the browser never starts a horizontal scroll, so the swipe works
+   without it. */
 
 const SWIPE_DELETE_W = 88;
-const SWIPE_CONFIRM_W = 168;
-const MS_GUTTER_W = 40;
-const LONG_PRESS_MS = 1500;
-const SWIPE_CONFIRM_TIMEOUT_MS = 4000;
+const LONG_PRESS_MS = 1000;
 
 function SwipeableItem({
   listing,
@@ -508,11 +655,8 @@ function SwipeableItem({
   onToggleLike,
   onDelete,
   isSwipedOpen,
-  isSwipeConfirming,
   onSwipeOpen,
   onSwipeClose,
-  onSwipeConfirm,
-  onSwipeCancelConfirm,
   multiSelect,
   isSelected,
   onToggleSelect,
@@ -525,11 +669,8 @@ function SwipeableItem({
   onToggleLike: (l: Listing) => void;
   onDelete: (l: Listing) => void;
   isSwipedOpen: boolean;
-  isSwipeConfirming: boolean;
   onSwipeOpen: (id: string) => void;
   onSwipeClose: () => void;
-  onSwipeConfirm: (id: string) => void;
-  onSwipeCancelConfirm: () => void;
   multiSelect: boolean;
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
@@ -542,7 +683,7 @@ function SwipeableItem({
   const longPressTimer = useRef<number | null>(null);
   const suppressClick = useRef(false);
 
-  const targetOffset = isSwipeConfirming ? -SWIPE_CONFIRM_W : isSwipedOpen ? -SWIPE_DELETE_W : 0;
+  const targetOffset = isSwipedOpen ? -SWIPE_DELETE_W : 0;
 
   const setOffset = useCallback((px: number, animate: boolean) => {
     const el = trackRef.current;
@@ -558,12 +699,15 @@ function SwipeableItem({
     if (!dragging.current) setOffset(targetOffset, true);
   }, [targetOffset, setOffset]);
 
-  // Auto-cancel the swipe confirm after a while (tap elsewhere or wait).
+  // Belt-and-braces for the no-select surface: even if a long-press
+  // reaches the selection machinery, selectstart is cancelled here.
   useEffect(() => {
-    if (!isSwipeConfirming) return;
-    const t = window.setTimeout(() => onSwipeCancelConfirm(), SWIPE_CONFIRM_TIMEOUT_MS);
-    return () => window.clearTimeout(t);
-  }, [isSwipeConfirming, onSwipeCancelConfirm]);
+    const el = trackRef.current;
+    if (!el) return;
+    const stop = (e: Event) => e.preventDefault();
+    el.addEventListener("selectstart", stop);
+    return () => el.removeEventListener("selectstart", stop);
+  }, []);
 
   const clearLongPress = useCallback(() => {
     if (longPressTimer.current !== null) {
@@ -603,7 +747,7 @@ function SwipeableItem({
         dragging.current = true;
       } else if (isScrollIntent(dx, dy)) {
         // Vertical scroll: if this row was open, close it.
-        if (isSwipedOpen || isSwipeConfirming) onSwipeClose();
+        if (isSwipedOpen) onSwipeClose();
         start.current = null;
         return;
       } else {
@@ -611,7 +755,7 @@ function SwipeableItem({
       }
     }
     // Horizontal drag: follow the finger, clamped to [-maxOpen, 0].
-    const maxOpen = isSwipeConfirming ? SWIPE_CONFIRM_W : SWIPE_DELETE_W;
+    const maxOpen = SWIPE_DELETE_W;
     setOffset(clampSwipeOffset(targetOffset, dx, maxOpen), false);
   };
 
@@ -622,12 +766,12 @@ function SwipeableItem({
       return; // a tap (or a long-press); the click handler decides
     }
     dragging.current = false;
-    const maxOpen = isSwipeConfirming ? SWIPE_CONFIRM_W : SWIPE_DELETE_W;
+    const maxOpen = SWIPE_DELETE_W;
     const snapped = snapSwipeOffset(offsetRef.current, maxOpen);
     setOffset(snapped, true);
     if (snapped === -maxOpen) {
       if (!isSwipedOpen) onSwipeOpen(listing.id);
-    } else if (isSwipedOpen || isSwipeConfirming) {
+    } else if (isSwipedOpen) {
       onSwipeClose();
     }
     start.current = null;
@@ -659,7 +803,7 @@ function SwipeableItem({
       onToggleSelect(listing.id);
       return;
     }
-    if (isSwipedOpen || isSwipeConfirming) {
+    if (isSwipedOpen) {
       // Tapping an open row closes it instead of opening the detail.
       e.preventDefault();
       e.stopPropagation();
@@ -669,84 +813,56 @@ function SwipeableItem({
   };
 
   return (
-    <div className={`flex items-stretch ${layout === "single" ? "h-full" : ""}`}>
-      {/* Checkbox gutter: always mounted; width 0 when closed, 40px when
-          multi-selecting. The width transition slides the item right on
-          enter and back on exit; the checkbox fades/scales in with it. */}
+    <div className={`relative min-w-0 w-full overflow-hidden rounded-[10px] ${layout === "single" ? "h-full" : ""}`}>
+      {/* Delete action layer behind the item; the item translates left
+          to reveal it. Tapping Delete opens the centred confirm modal. */}
       <div
-        aria-hidden={!multiSelect}
-        className="flex shrink-0 items-center justify-center overflow-hidden transition-[width] duration-200 ease-out"
-        style={{ width: multiSelect ? MS_GUTTER_W : 0 }}
+        className="absolute inset-y-0 right-0 z-0 w-[88px]"
+        aria-hidden={!isSwipedOpen}
       >
         <button
           type="button"
-          data-ms-checkbox
-          aria-label={isSelected ? `取消选择 ${title(listing)}` : `选择 ${title(listing)}`}
-          aria-checked={isSelected}
-          tabIndex={multiSelect ? 0 : -1}
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-base font-semibold leading-none transition-all duration-200 ease-out ${
-            multiSelect ? "scale-100 opacity-100" : "scale-75 opacity-0"
-          }`}
-          style={
-            isSelected
-              ? { backgroundColor: "var(--btn-green)", borderColor: "var(--btn-green)", color: "#fff" }
-              : { borderColor: "var(--faint)", color: "transparent", backgroundColor: "transparent" }
-          }
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelect(listing.id);
-          }}
+          data-swipe-delete
+          aria-label="删除这台机器"
+          className="absolute inset-y-0 right-0 w-[88px] text-sm font-medium text-white"
+          style={{ backgroundColor: "var(--verdict-red)" }}
+          onClick={() => onDelete(listing)}
         >
-          ✓
+          删除
         </button>
       </div>
-      {/* Swipe area: delete action layer behind, item translating above. */}
-      <div className={`relative min-w-0 flex-1 overflow-hidden rounded-[10px] ${layout === "single" ? "h-full" : ""}`}>
-        <div
-          className="absolute inset-y-0 right-0 z-0 w-[168px]"
-          aria-hidden={!isSwipedOpen && !isSwipeConfirming}
-        >
-          {isSwipeConfirming ? (
-            <button
-              type="button"
-              data-swipe-delete
-              aria-label="再点一次确认删除这台机器"
-              className="absolute inset-y-0 right-0 w-[168px] whitespace-nowrap px-3 text-sm font-medium text-white"
-              style={{ backgroundColor: "var(--verdict-red)" }}
-              onClick={() => onDelete(listing)}
-            >
-              再点一次确认删除
-            </button>
-          ) : (
-            <button
-              type="button"
-              data-swipe-delete
-              aria-label="删除这台机器"
-              className="absolute inset-y-0 right-0 w-[88px] text-sm font-medium text-white"
-              style={{ backgroundColor: "var(--verdict-red)" }}
-              onClick={() => onSwipeConfirm(listing.id)}
-            >
-              删除
-            </button>
-          )}
-        </div>
-        <div
-          ref={trackRef}
-          className={`relative z-10 will-change-transform ${layout === "single" ? "h-full" : ""}`}
-          style={{ touchAction: "pan-y", WebkitTouchCallout: "none" }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchCancel}
-          onClickCapture={handleClickCapture}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          {layout === "single" ? (
-            <MemoCard listing={listing} rate={rate} onOpen={onOpen} onToggleLike={onToggleLike} />
-          ) : (
-            <MemoListRow listing={listing} rate={rate} onOpen={onOpen} onToggleLike={onToggleLike} />
-          )}
-        </div>
+      <div
+        ref={trackRef}
+        className={`relative z-10 will-change-transform ${layout === "single" ? "h-full" : ""}`}
+        style={{ touchAction: "pan-y", WebkitTouchCallout: "none", userSelect: "none", WebkitUserSelect: "none" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onClickCapture={handleClickCapture}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {layout === "single" ? (
+          <MemoCard
+            listing={listing}
+            rate={rate}
+            onOpen={onOpen}
+            onToggleLike={onToggleLike}
+            multiSelect={multiSelect}
+            isSelected={isSelected}
+            onToggleSelect={onToggleSelect}
+          />
+        ) : (
+          <MemoListRow
+            listing={listing}
+            rate={rate}
+            onOpen={onOpen}
+            onToggleLike={onToggleLike}
+            multiSelect={multiSelect}
+            isSelected={isSelected}
+            onToggleSelect={onToggleSelect}
+          />
+        )}
       </div>
     </div>
   );
@@ -2584,10 +2700,11 @@ export function App() {
      paths only append to localStorage deletions — listings.json is never
      written. */
   const [swipedId, setSwipedId] = useState<string | null>(null);
-  const [swipeConfirmId, setSwipeConfirmId] = useState<string | null>(null);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
-  const [toolbarConfirming, setToolbarConfirming] = useState(false);
+  /* Pending delete awaiting the centred confirm modal: a single listing
+     from swipe-to-delete, or the bulk count from multi-select. */
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [openId, setOpenId] = useState<string | null>(() => {
     const m = window.location.hash.match(/#item=([^&]+)/);
     if (m) return decodeURIComponent(m[1] ?? "");
@@ -2724,18 +2841,16 @@ export function App() {
   // closes the detail.
   const closeSwipe = useCallback(() => {
     setSwipedId(null);
-    setSwipeConfirmId(null);
   }, []);
   const enterMultiSelect = useCallback((id: string) => {
     closeSwipe();
-    setToolbarConfirming(false);
     setMultiSelect(true);
     setSelectedIds(new Set([id]));
   }, [closeSwipe]);
   const toggleSelect = useCallback((id: string) => {
-    // Any change of selection resets the toolbar's delete confirm, so
-    // the confirm can never delete a different set than the one shown.
-    setToolbarConfirming(false);
+    // The bulk-delete count is captured when the confirm modal opens,
+    // and the modal's mask blocks the list meanwhile, so the confirm
+    // can never delete a different set than the one shown.
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -2746,7 +2861,6 @@ export function App() {
   const exitMultiSelect = useCallback(() => {
     setMultiSelect(false);
     setSelectedIds(new Set());
-    setToolbarConfirming(false);
     closeSwipe();
   }, [closeSwipe]);
   const deleteFromList = useCallback((ids: readonly string[]) => {
@@ -2763,12 +2877,21 @@ export function App() {
     exitMultiSelect();
   }, [deleteFromList, exitMultiSelect, selectedIds]);
 
-  // Auto-cancel the toolbar's delete confirm after a while.
-  useEffect(() => {
-    if (!toolbarConfirming) return;
-    const t = window.setTimeout(() => setToolbarConfirming(false), 4000);
-    return () => window.clearTimeout(t);
-  }, [toolbarConfirming]);
+  /* Delete confirm modal (home list only — the detail page keeps its
+     own inline two-step confirm). Tapping Delete — swipe single or the
+     multi-select toolbar — opens the modal; Confirm deletes, Cancel or
+     the mask closes without deleting. */
+  const requestSingleDelete = useCallback((l: Listing) => {
+    closeSwipe();
+    setDeleteConfirm({ kind: "single", listing: l });
+  }, [closeSwipe]);
+  const confirmDelete = useCallback(() => {
+    if (!deleteConfirm) return;
+    if (deleteConfirm.kind === "single") deleteOneFromList(deleteConfirm.listing);
+    else deleteSelected();
+    setDeleteConfirm(null);
+  }, [deleteConfirm, deleteOneFromList, deleteSelected]);
+  const cancelDelete = useCallback(() => setDeleteConfirm(null), []);
   const saveAnalysis = useCallback((id: string, a: Analysis) => save(s => { s.analysis[id] = a; }), [save]);
 
   const exportBackup = useCallback(() => {
@@ -2868,7 +2991,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <main ref={homeRef} className={`mx-auto max-w-5xl px-4 transition-[padding-bottom] duration-200 ease-out ${multiSelect ? "pb-36" : "pb-12"}`}>
+      <main ref={homeRef} className={`mx-auto max-w-5xl px-4 transition-[padding-bottom] duration-200 ease-out ${multiSelect ? "pb-44" : "pb-12"}`}>
         <header className="pb-3 pt-4 sm:pb-4 sm:pt-5">
           {/* Title artwork: the user's supplied MACBOOK SVG,
               pre-rasterised at build time to a WebP bitmap
@@ -2974,7 +3097,7 @@ export function App() {
 
         {notice && <p role="status" className="mt-2 text-sm">{notice}</p>}
         {state.isRefetchError && <p role="status" className="mt-2 text-sm">清单更新失败，当前显示上次读取的结果。</p>}
-        <div className="pt-5">
+        <div className="no-select pt-5">
           {state.isPending ? (
             <p className="py-16 text-center text-base text-[var(--faint)]">加载中</p>
           ) : state.isLoadingError ? (
@@ -3001,13 +3124,10 @@ export function App() {
                   layout={layout}
                   onOpen={openDetail}
                   onToggleLike={toggleLike}
-                  onDelete={deleteOneFromList}
+                  onDelete={requestSingleDelete}
                   isSwipedOpen={swipedId === l.id}
-                  isSwipeConfirming={swipeConfirmId === l.id}
                   onSwipeOpen={setSwipedId}
                   onSwipeClose={closeSwipe}
-                  onSwipeConfirm={setSwipeConfirmId}
-                  onSwipeCancelConfirm={closeSwipe}
                   multiSelect={multiSelect}
                   isSelected={selectedIds.has(l.id)}
                   onToggleSelect={toggleSelect}
@@ -3025,13 +3145,10 @@ export function App() {
                   layout={layout}
                   onOpen={openDetail}
                   onToggleLike={toggleLike}
-                  onDelete={deleteOneFromList}
+                  onDelete={requestSingleDelete}
                   isSwipedOpen={swipedId === l.id}
-                  isSwipeConfirming={swipeConfirmId === l.id}
                   onSwipeOpen={setSwipedId}
                   onSwipeClose={closeSwipe}
-                  onSwipeConfirm={setSwipeConfirmId}
-                  onSwipeCancelConfirm={closeSwipe}
                   multiSelect={multiSelect}
                   isSelected={selectedIds.has(l.id)}
                   onToggleSelect={toggleSelect}
@@ -3073,9 +3190,9 @@ export function App() {
 
       {/* Multi-select bottom actions: two separate frosted-glass buttons
           (Cancel left, Delete right), centred as a group at the bottom,
-          with the selected count above them. Delete is red text on glass
-          and turns solid red for the two-step confirm, mirroring the
-          detail page. */}
+          with the selected count above them. Delete is --btn-red text
+          (the like-heart red) on glass; tapping it opens the centred
+          confirm modal instead of changing its own label. */}
       {multiSelect ? (
         <div className="ms-bar-in pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 pb-[calc(env(safe-area-inset-bottom)+14px)]">
           <span className="glass pointer-events-none rounded-full px-3 py-1 text-xs text-[var(--dim)]">
@@ -3090,31 +3207,26 @@ export function App() {
             >
               取消
             </button>
-            {toolbarConfirming ? (
-              <button
-                type="button"
-                aria-label="再点一次确认删除已选机器"
-                disabled={selectedIds.size === 0}
-                className="whitespace-nowrap rounded-full px-6 py-3 text-sm font-medium text-white transition-all duration-200 ease-out disabled:opacity-40"
-                style={{ backgroundColor: "var(--verdict-red)" }}
-                onClick={deleteSelected}
-              >
-                再点一次确认删除
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-label="删除已选机器"
-                disabled={selectedIds.size === 0}
-                className="glass whitespace-nowrap rounded-full border border-[var(--border)] px-6 py-3 text-sm font-medium transition-all duration-200 ease-out disabled:opacity-40"
-                style={{ color: "var(--verdict-red)" }}
-                onClick={() => setToolbarConfirming(true)}
-              >
-                删除
-              </button>
-            )}
+            <button
+              type="button"
+              aria-label="删除已选机器"
+              disabled={selectedIds.size === 0}
+              className="glass whitespace-nowrap rounded-full border border-[var(--border)] px-6 py-3 text-sm font-medium transition-all duration-200 ease-out disabled:opacity-40"
+              style={{ color: "var(--btn-red)" }}
+              onClick={() => setDeleteConfirm({ kind: "bulk", count: selectedIds.size })}
+            >
+              删除
+            </button>
           </div>
         </div>
+      ) : null}
+
+      {deleteConfirm ? (
+        <DeleteConfirmModal
+          confirm={deleteConfirm}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       ) : null}
 
       {openListing ? (

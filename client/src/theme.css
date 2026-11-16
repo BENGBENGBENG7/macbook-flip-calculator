@@ -334,6 +334,15 @@ main .glass-red {
   animation: ms-bar-in 200ms ease-out both;
 }
 
+/* Long-press must never trigger the OS text-selection callout: the home
+   list is an app surface, not a document. Applied to the list area and
+   each row (see SwipeableItem's track). */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pressable:active {
     transform: none;
