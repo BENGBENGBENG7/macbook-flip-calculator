@@ -11,7 +11,7 @@ type MouseEvent as ReactMouseEvent,
 type ReactNode,
 type RefObject,
 } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import { editLocal, exportLocal, readLocal, restoreLocal, subscribeLocal } from "./local";
 import TITLE_IMG_SRC from "./assets/title-art.webp";
@@ -2267,8 +2267,9 @@ type SortMode = "recommend" | "buyable" | "profit" | "priceAsc" | "newest";
 type FilterMode = "all" | "xianyu" | "carousell" | "liked";
 type LayoutMode = "single" | "multi";
 
+const LISTINGS_REFRESH_MS = 60 * 60 * 1000;
+
 export function App() {
-  const queryClient = useQueryClient();
   const [personal, setPersonal] = useState(readLocal);
   const [notice, setNotice] = useState("");
   useEffect(() => subscribeLocal(() => setPersonal(readLocal())), []);
@@ -2308,7 +2309,11 @@ export function App() {
   const state = useQuery({
     queryKey: ["state"],
     queryFn: ({ signal }) => api.getState(signal),
-    staleTime: 60 * 1000,
+    staleTime: LISTINGS_REFRESH_MS,
+    refetchInterval: LISTINGS_REFRESH_MS,
+    refetchIntervalInBackground: true,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const rateQuery = useQuery({
     queryKey: ["rate"],
@@ -2318,26 +2323,6 @@ export function App() {
 
   const rate: number | null =
     rateQuery.data?.rate ?? null;
-
-  // Refetch when the page comes back to the foreground (auto read-sync),
-  // but only when the data is actually stale. This used to invalidate on
-  // EVERY foreground return: the state payload carries a base64 cover
-  // photo per listing, so each return meant a fresh download + parse on
-  // the main thread and a full-list repaint — the intermittent freeze
-  // and screen flash the user reported. Under a minute old, the cached
-  // rows are shown as-is and nothing is refetched or repainted.
-  useEffect(() => {
-    const onVis = () => {
-      if (document.visibilityState !== "visible") return;
-      const updatedAt =
-        queryClient.getQueryState(["state"])?.dataUpdatedAt ?? 0;
-      if (Date.now() - updatedAt > 60 * 1000) {
-        void queryClient.invalidateQueries({ queryKey: ["state"] });
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [queryClient]);
 
   useEffect(() => {
     localStorage.setItem(SORT_KEY, sort);
@@ -2408,7 +2393,7 @@ export function App() {
       sessionStorage.setItem(OPEN_KEY, l.id);
       window.history.replaceState(null, "", `#item=${encodeURIComponent(l.id)}`);
     },
-    [queryClient],
+    [],
   );
   const closeDetail = useCallback(() => {
     setOpenId(null);
@@ -2640,10 +2625,11 @@ export function App() {
         </div>
 
         {notice && <p role="status" className="mt-2 text-sm">{notice}</p>}
+        {state.isRefetchError && <p role="status" className="mt-2 text-sm">清单更新失败，当前显示上次读取的结果。</p>}
         <div className="pt-5">
           {state.isPending ? (
             <p className="py-16 text-center text-base text-[var(--faint)]">加载中</p>
-          ) : state.isError ? (
+          ) : state.isLoadingError ? (
             <div className="py-16 text-center">
               <p className="text-base text-[var(--dim)]">加载失败</p>
               <button
