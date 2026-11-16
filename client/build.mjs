@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { cp, mkdir, writeFile, readFile } from "node:fs/promises";
 
 await mkdir("docs", { recursive: true });
 const result = await Bun.build({
@@ -13,3 +13,5 @@ const html = (await readFile("client/index.html", "utf8")).replace("./src/main.t
   .replace("</head>", '<link rel="stylesheet" href="./style.css"></head>');
 await writeFile("docs/index.html", html);
 await writeFile("docs/.nojekyll", "");
+await cp("icons", "docs/icons", { recursive: true });
+await cp("manifest.webmanifest", "docs/manifest.webmanifest");
