@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <script>if (location.protocol === 'file:') location.replace('https://bengbengbeng7.github.io/macbook-flip-calculator/');</script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#25D366">
+  <meta name="theme-color" content="#243747">
   <meta name="application-name" content="Macbook flip">
   <meta name="apple-mobile-web-app-title" content="Macbook flip">
   <meta name="description" content="MacBook Pro 翻新买卖核算工具：实时汇率、费用明细、成交价估算与利润排序。">
   <title>Macbook flip</title>
-  <link rel="stylesheet" href="styles.css?v=design-review-20261115-final">
+  <link rel="stylesheet" href="styles.css?v=settings-gallery-20261116">
   <link rel="icon" href="logo.svg?v=design-review-20261115-final" type="image/svg+xml">
   <link rel="icon" href="favicon-macbook.png?v=design-review-20261115-final" sizes="64x64" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-macbook.png?v=design-review-20261115-final">
@@ -25,8 +25,7 @@
         <div class="sync-label" role="status"><span class="sync-dot" aria-hidden="true"></span><span id="syncText">等待巡查数据同步</span></div>
       </div>
       <div class="header-actions">
-        <button id="githubAuthButton" class="control-button github-auth-button" type="button" aria-label="云端写入授权：同步分析和删除记录" title="云端写入授权"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 3 3-3 3-2-2-2 2 2 2-3 3"/></svg><span id="githubAuthText">云端写入授权</span></button>
-        <button id="backupData" class="control-button backup-button" type="button" aria-label="数据备份：导出或导入个人数据" title="数据备份"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span>数据备份</span></button>
+        <button id="settingsButton" class="control-button settings-button" type="button" aria-label="设置" title="设置"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 0-6l1.4-1.1-1.4-2.4-1.7.7a8 8 0 0 0-3.4-1.4L14 3h-4l-.3 1.8a8 8 0 0 0-3.4 1.4l-1.7-.7-1.4 2.4L4.6 9a8 8 0 0 0 0 6l-1.4 1.1 1.4 2.4 1.7-.7a8 8 0 0 0 3.4 1.4L10 21h4l.3-1.8a8 8 0 0 0 3.4-1.4l1.7.7 1.4-2.4z"/></svg><span>设置</span></button>
         <button id="syncNow" class="control-button sync-button" type="button" aria-label="同步巡查：手动获取最新巡查数据"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/></svg><span>同步巡查</span></button>
       </div>
     </div>
@@ -34,7 +33,7 @@
 
   <main id="top" class="page-shell">
     <section class="toolbar" aria-label="列表工具">
-      <div class="toolbar-copy"><h1>巡查列表</h1><strong id="listingCount">0 台商品</strong></div>
+      <div class="toolbar-copy"><h1>采购评估</h1><strong id="listingCount">0 台商品</strong></div>
       <div class="toolbar-controls">
         <div class="platform-tabs" role="group" aria-label="平台筛选">
           <button type="button" class="platform-tab" data-platform-filter="all" aria-pressed="true">全部</button>
@@ -108,14 +107,15 @@
     <p id="deleteItemTitle" class="delete-item-title"></p>
     <div class="dialog-actions"><button type="button" id="cancelDelete" class="secondary-button" autofocus>保留商品</button><button type="button" id="confirmDelete" class="primary-button danger-button">确认删除</button></div>
   </dialog>
+  <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="dialog-head"><div><h2 id="settingsTitle">设置</h2></div><button type="button" class="icon-button close-button" id="closeSettings" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 18 6 6"/></svg></button></div><section class="settings-section"><h3>账户与数据</h3><button id="settingsGithubAuth" class="settings-row" type="button"><span><strong>云端写入授权</strong><small>连接 GitHub，同步个人分析和删除记录</small></span><span>›</span></button><button id="settingsBackup" class="settings-row" type="button"><span><strong>备份与迁移</strong><small>导出或导入个人数据</small></span><span>›</span></button></section></dialog>
   <dialog id="imageDialog" class="image-dialog" aria-labelledby="imageDialogTitle">
     <div class="image-viewer-toolbar">
       <div class="image-viewer-title"><strong id="imageDialogTitle">商品照片</strong><span id="imageDimensions">正在读取图片尺寸…</span><span id="imageCounter" aria-live="polite" hidden>1 / 1</span></div>
       <div class="image-viewer-actions"><button type="button" class="image-size-toggle" id="imageSizeToggle">查看原尺寸（100%）</button><button type="button" class="image-viewer-close" id="closeImageViewer" aria-label="关闭原图"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
     </div>
     <div id="imageViewerStage" class="image-viewer-stage"><button type="button" id="previousViewerImage" class="image-viewer-nav previous" aria-label="上一张照片" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><img id="fullSizeImage" alt="商品原图" title="点击切换显示比例"><button type="button" id="nextViewerImage" class="image-viewer-nav next" aria-label="下一张照片" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>
-    <p class="image-viewer-hint">使用左右按钮切换照片 · 点击照片切换原尺寸 · 可双指缩放</p>
+    <div id="imageThumbnails" class="image-thumbnails" aria-label="商品照片缩略图"></div><p class="image-viewer-hint">左右按钮或键盘切换 · 点击照片查看原尺寸 · 可双指缩放</p>
   </dialog>
-  <script src="app.js?v=design-review-20261115-final"></script>
+  <script src="app.js?v=settings-gallery-20261116"></script>
 </body>
 </html>

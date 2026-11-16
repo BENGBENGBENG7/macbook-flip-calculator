@@ -49,6 +49,7 @@ const fullSizeImage = document.querySelector('#fullSizeImage');
 const imageDimensions = document.querySelector('#imageDimensions');
 const imageSizeToggle = document.querySelector('#imageSizeToggle');
 const imageCounter = document.querySelector('#imageCounter');
+const imageThumbnails = document.querySelector('#imageThumbnails');
 const previousViewerImage = document.querySelector('#previousViewerImage');
 const nextViewerImage = document.querySelector('#nextViewerImage');
 let viewerImages = [];
@@ -598,6 +599,7 @@ function showViewerImage() {
   previousViewerImage.hidden = viewerImages.length < 2;
   nextViewerImage.hidden = viewerImages.length < 2;
   imageSizeToggle.textContent = '查看原尺寸（100%）';
+  imageThumbnails.innerHTML = viewerImages.map((src,index)=>`<button type="button" class="image-thumbnail ${index===viewerIndex?'active':''}" data-thumbnail-index="${index}" aria-label="查看第 ${index+1} 张照片" aria-current="${index===viewerIndex?'true':'false'}"><img src="${esc(src)}" alt="" loading="lazy"></button>`).join('');
   imageDialog.scrollTop = 0;
 }
 function stepViewerImage(amount) {
@@ -890,7 +892,11 @@ document.querySelector('#platformFilter').addEventListener('change',event=>{
   render();window.scrollTo({top:0,behavior:'smooth'});
 });
 const backupDialog = document.querySelector('#backupDialog');
-document.querySelector('#backupData').addEventListener('click',()=>backupDialog.showModal());
+const settingsDialog=document.querySelector('#settingsDialog');
+document.querySelector('#settingsButton').addEventListener('click',()=>settingsDialog.showModal());
+document.querySelector('#closeSettings').addEventListener('click',()=>settingsDialog.close());
+document.querySelector('#settingsGithubAuth').addEventListener('click',()=>{settingsDialog.close();openGithubAuthDialog();});
+document.querySelector('#settingsBackup').addEventListener('click',()=>{settingsDialog.close();backupDialog.showModal();});
 document.querySelector('#closeBackupDialog').addEventListener('click',()=>backupDialog.close());
 document.querySelector('#exportBackup').addEventListener('click',async()=>{
   try { await exportDataBackup(); backupDialog.close(); }
@@ -912,7 +918,6 @@ backupFileInput.addEventListener('change',async()=>{
 });
 document.querySelector('#refreshRate').addEventListener('click',fetchRate);
 const githubTokenDialog = document.querySelector('#githubTokenDialog');
-document.querySelector('#githubAuthButton').addEventListener('click',openGithubAuthDialog);
 document.querySelector('#closeGithubTokenDialog').addEventListener('click',()=>githubTokenDialog.close());
 document.querySelector('#cancelGithubToken').addEventListener('click',()=>githubTokenDialog.close());
 document.querySelector('#disconnectGithub').addEventListener('click',async()=>{
@@ -1052,6 +1057,7 @@ imageDialog.addEventListener('keydown',event=>{
   if(event.key==='ArrowRight'){event.preventDefault();stepViewerImage(1);}
 });
 document.querySelector('#closeImageViewer').addEventListener('click',()=>imageDialog.close());
+imageThumbnails.addEventListener('click',event=>{const button=event.target.closest('[data-thumbnail-index]');if(button){viewerIndex=Number(button.dataset.thumbnailIndex);showViewerImage();}});
 imageDialog.addEventListener('click',event=>{if(event.target===imageDialog)imageDialog.close();});
 imageDialog.addEventListener('close',()=>{fullSizeImage.removeAttribute('src');viewerImages=[];});
 form.addEventListener('submit',event=>{
