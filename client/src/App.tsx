@@ -2560,12 +2560,14 @@ export function App() {
               composited, not re-drawn: the compositor just moves
               the finished texture, so the title costs nothing per
               scroll frame. The picture is pixel-identical. */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            <img src="./icons/sift-180.png" width="180" height="180" alt="" aria-hidden="true"
-              className="w-[12%] max-w-[76px] shrink-0 rounded-[23%]" />
-            <img src={TITLE_IMG_SRC} alt="" aria-hidden="true" draggable={false} decoding="async"
-              className="title-art block min-w-0 flex-1 select-none" />
-          </div>
+          <img
+            src={TITLE_IMG_SRC}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            decoding="async"
+            className="title-art mx-auto block h-auto w-full select-none"
+          />
         </header>
 
         <div className="glass-bar sticky top-0 z-30 -mx-4 px-4 pb-2.5 pt-3">
