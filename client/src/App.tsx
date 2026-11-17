@@ -3440,7 +3440,7 @@ export function App() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <main ref={homeRef} className={`mx-auto max-w-5xl px-4 transition-[padding-bottom] duration-200 ease-out ${multiSelect ? "pb-44" : "pb-12"}`}>
-        <header className="pb-3 pt-4 sm:pb-4 sm:pt-5">
+        <header className="pb-2 pt-4 sm:pb-3 sm:pt-5">
           {/* Title artwork: the user's supplied MACBOOK SVG,
               pre-rasterised at build time to a WebP bitmap
               (client/src/assets/title-art.webp, 2197x533 — over 2x
@@ -3474,7 +3474,7 @@ export function App() {
           />
         </header>
 
-        <div className="control-bar sticky top-0 z-30 -mx-4 px-4 pb-2 pt-2">
+        <div className="control-bar sticky top-0 z-30 -mx-4 px-4 pb-0 pt-2">
           <div className="glass-panel px-3 py-3">
           <div className="flex items-stretch gap-2.5">
             <MenuSelect
