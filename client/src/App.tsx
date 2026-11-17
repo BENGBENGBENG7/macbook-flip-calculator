@@ -512,7 +512,7 @@ const MemoListRow = memo(ListRow);
 
 /* ---------- multi-select checkbox (inside the card frame) --------------
    Rendered inside each card's text area, absolutely positioned at the
-   left edge. Fixed 28x28, flex:none, border-radius 50% — absolute
+   left edge. Fixed 22x22, flex:none, border-radius 50% — absolute
    positioning plus pinned size means flex can never stretch it into
    an oval, at any card height. Selected: green fill + white check;
    unselected: faint outline. Hidden (opacity 0, no pointer events)
@@ -536,12 +536,12 @@ function SelectCheckbox({
       aria-checked={selected}
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      className={`absolute left-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border-2 text-base font-semibold leading-none transition-all duration-200 ease-out ${
+      className={`absolute left-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border-2 text-sm font-semibold leading-none transition-all duration-200 ease-out ${
         visible ? "scale-100 opacity-100" : "scale-75 opacity-0"
       }`}
       style={{
-        width: 28,
-        height: 28,
+        width: 22,
+        height: 22,
         flex: "none",
         borderRadius: "50%",
         pointerEvents: visible ? "auto" : "none",
