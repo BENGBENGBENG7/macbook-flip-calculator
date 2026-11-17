@@ -793,7 +793,11 @@ function NoticePopup({
           type="button"
           aria-label="关闭提醒"
           className="absolute right-3 top-3 h-3 w-3 rounded-full"
-          style={{ backgroundColor: "var(--btn-red)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)" }}
+          /* Same trap as the multi-select checkbox (Round 6): theme.css
+             sets a global button min-height of 2rem, which stretches
+             this 12px dot into a tall red pill. minHeight/minWidth 0
+             here keeps it a true circle. */
+          style={{ backgroundColor: "var(--btn-red)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)", minHeight: 0, minWidth: 0 }}
           onClick={close}
         />
         <p className="text-center text-sm leading-6 text-[var(--text)]">{message}</p>
