@@ -659,6 +659,93 @@ function DeleteConfirmModal({
   );
 }
 
+/* ---------- GitHub token modal (footer button) ---------------------------
+   Same centred-modal shell as the delete confirm (light dim backdrop,
+   frosted glass, coloured text only — no solid fills). The token is
+   pasted here and saved only to this browser's localStorage; it is
+   never shown back (password field, placeholder only says whether one
+   is already set). Saving an empty value leaves the modal open with a
+   notice instead of closing it. */
+function TokenModal({
+  hasToken,
+  onSave,
+  onClear,
+  onCancel,
+}: {
+  hasToken: boolean;
+  onSave: (value: string) => boolean;
+  onClear: () => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="GitHub 同步令牌"
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-black/15 backdrop-blur-[2px]"
+        onClick={onCancel}
+      />
+      <div className="glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] p-5">
+        <p className="text-center text-base font-medium text-[var(--text)]">GitHub Token</p>
+        <p className="mt-1 text-center text-xs leading-5 text-[var(--dim)]">
+          粘贴后点“同步”会把本机的喜欢上传到云端；不填只下载最新清单。令牌只保存在本浏览器。
+        </p>
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={hasToken ? "已设置令牌" : "粘贴 GitHub 令牌"}
+          aria-label="GitHub 同步令牌"
+          autoComplete="off"
+          autoFocus
+          className="glass mt-4 w-full min-w-0 rounded-full border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--text)]"
+        />
+        <div className="mt-5 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            aria-label="取消"
+            className="glass rounded-full border px-6 py-3 text-sm font-medium text-[var(--text)] transition-all duration-200 ease-out"
+            onClick={onCancel}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            aria-label="保存同步令牌"
+            className="glass rounded-full border px-6 py-3 text-sm font-medium text-[var(--btn-green)] transition-all duration-200 ease-out"
+            style={{ borderColor: "color-mix(in srgb, var(--btn-green) 35%, transparent)" }}
+            onClick={() => { if (onSave(value)) onCancel(); }}
+          >
+            保存
+          </button>
+        </div>
+        {hasToken ? (
+          <button
+            type="button"
+            aria-label="清除同步令牌"
+            className="mt-3 w-full text-center text-xs text-[var(--btn-red)]"
+            onClick={() => { onClear(); onCancel(); }}
+          >
+            清除已保存的 Token
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- home list item: swipe-to-delete + long-press multi-select -----
    One wrapper around a list item (Card in single mode, ListRow in multi
    mode) that adds three gestures which must not interfere:
@@ -2724,9 +2811,10 @@ export function App() {
   const [personal, setPersonal] = useState(readLocal);
   const [notice, setNotice] = useState("");
   /* Two-way cloud sync: the GitHub token lives only in this browser
-     (see local.ts); the input below holds what the user is typing. */
+     (see local.ts). It is set through the token button in the footer,
+     which opens a small modal for pasting it. */
   const [token, setToken] = useState(() => readSyncToken());
-  const [tokenInput, setTokenInput] = useState("");
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   useEffect(() => subscribeLocal(() => setPersonal(readLocal())), []);
   const save = useCallback((edit: Parameters<typeof editLocal>[0]) => {
@@ -2965,14 +3053,14 @@ export function App() {
       setNotice("已在此浏览器恢复喜欢、分析和删除记录。");
     } catch { setNotice("导入失败，请选择完整的 Macbook Sift 备份并检查本地存储权限。"); }
   }, []);
-  const onSaveToken = useCallback(() => {
-    const t = tokenInput.trim();
-    if (!t) { setNotice("请先粘贴令牌。"); return; }
+  const onSaveToken = useCallback((value: string) => {
+    const t = value.trim();
+    if (!t) { setNotice("请先粘贴令牌。"); return false; }
     saveSyncToken(t);
     setToken(t);
-    setTokenInput("");
     setNotice("同步令牌已保存在此浏览器。");
-  }, [tokenInput]);
+    return true;
+  }, []);
   const onClearToken = useCallback(() => {
     clearSyncToken();
     setToken("");
@@ -3271,24 +3359,37 @@ export function App() {
           )}
         </div>
 
-        <footer className="mt-12 flex flex-wrap gap-2 border-t border-[var(--border)] pt-5">
-          <button
-            type="button"
-            aria-label="导出备份"
-            className="glass rounded-full border border-[var(--border)] px-4 py-1.5 text-sm text-[var(--dim)]"
-            onClick={() => void exportBackup()}
-          >
-            导出备份
-          </button>
-          <button
-            type="button"
-            aria-label="导入备份"
-            className="glass rounded-full border border-[var(--border)] px-4 py-1.5 text-sm text-[var(--dim)]"
-            onClick={() => fileRef.current?.click()}
-          >
-            导入备份
-          </button>
-          <p className="w-full text-xs text-[var(--dim)]">喜欢和分析保存在此浏览器。换设备前请导出备份。</p>
+        <footer className="mt-12 border-t border-[var(--border)] pt-5">
+          {/* Backup row: three buttons evenly spread (flex-1), same frosted
+              pill effect as each other — export, import, and the GitHub
+              token, which opens a small modal for pasting it. */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="导出备份"
+              className="glass min-w-0 flex-1 truncate rounded-full border border-[var(--border)] px-4 py-1.5 text-sm text-[var(--dim)]"
+              onClick={() => void exportBackup()}
+            >
+              导出备份
+            </button>
+            <button
+              type="button"
+              aria-label="导入备份"
+              className="glass min-w-0 flex-1 truncate rounded-full border border-[var(--border)] px-4 py-1.5 text-sm text-[var(--dim)]"
+              onClick={() => fileRef.current?.click()}
+            >
+              导入备份
+            </button>
+            <button
+              type="button"
+              aria-label="GitHub 同步令牌"
+              className="glass min-w-0 flex-1 truncate rounded-full border border-[var(--border)] px-4 py-1.5 text-sm text-[var(--dim)]"
+              onClick={() => setTokenModalOpen(true)}
+            >
+              {token ? "Token 已设置" : "GitHub Token"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-[var(--dim)]">喜欢和分析保存在此浏览器。换设备前请导出备份。</p>
           <input
             ref={fileRef}
             type="file"
@@ -3297,46 +3398,6 @@ export function App() {
             className="hidden"
             onChange={(e) => void importBackup(e)}
           />
-          {/* Cloud sync settings: a GitHub token turns 同步 into two-way
-              sync (likes/analysis/deletions up to user-data.json). The
-              token lives only in this browser; without it, 同步 only
-              downloads the latest listings. */}
-          <div className="mt-2 w-full border-t border-[var(--border)] pt-4">
-            <p className="text-sm font-medium text-[var(--text)]">云端同步设置</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--dim)]">
-              填入 GitHub 令牌后，点“同步”会把本机的喜欢和分析上传到云端；不填令牌只下载最新清单，喜欢只存在本机。令牌只保存在本浏览器，不会发到别处。已删除的内容不会从云端重新出现。
-            </p>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-                placeholder={token ? "已设置令牌" : "粘贴 GitHub 令牌"}
-                aria-label="GitHub 同步令牌"
-                autoComplete="off"
-                className="glass min-w-0 flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)]"
-              />
-              <button
-                type="button"
-                aria-label="保存同步令牌"
-                className="glass shrink-0 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)]"
-                onClick={onSaveToken}
-              >
-                保存
-              </button>
-              {token ? (
-                <button
-                  type="button"
-                  aria-label="清除同步令牌"
-                  className="glass shrink-0 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)]"
-                  onClick={onClearToken}
-                >
-                  清除
-                </button>
-              ) : null}
-            </div>
-            <p className="mt-1 text-xs text-[var(--dim)]">{token ? "已设置同步令牌" : "未设置同步令牌"}</p>
-          </div>
         </footer>
       </main>
 
@@ -3378,6 +3439,15 @@ export function App() {
           confirm={deleteConfirm}
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
+        />
+      ) : null}
+
+      {tokenModalOpen ? (
+        <TokenModal
+          hasToken={!!token}
+          onSave={onSaveToken}
+          onClear={onClearToken}
+          onCancel={() => setTokenModalOpen(false)}
         />
       ) : null}
 
