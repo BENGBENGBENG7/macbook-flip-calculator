@@ -2753,7 +2753,7 @@ function MenuSelect({
                 role="option"
                 aria-selected={o.value === value}
                 aria-label={o.label}
-                className="block w-full whitespace-nowrap rounded-xl px-2.5 py-2 text-center text-sm text-[var(--text)] active:bg-black/5"
+                className={`block w-full whitespace-nowrap rounded-xl px-2.5 py-2 text-center text-sm active:bg-black/5 ${o.value === value ? "text-[var(--text)]" : "text-[var(--dim)]"}`}
                 onClick={() => {
                   onChange(o.value);
                   close();
