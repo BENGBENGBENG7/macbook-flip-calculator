@@ -533,6 +533,23 @@ body,
   button:disabled {
     opacity: 0.45;
   }
+  /* Press bounce (2026-11-17): every button springs a little when
+     pressed — the WHOLE button, not just its text. Text-only bounce
+     looks like the label rattling inside a dead frame, and the
+     icon-only buttons (like, trash, close) have no text to bounce.
+     Scale only: a transform never reflows layout, and the spring
+     easing (it overshoots the target slightly both ways) is what
+     makes it read as a bounce rather than a plain shrink. Buttons
+     whose transform is driven inline by JS (the swipe-delete trash
+     button) keep their own transform — the inline style wins over
+     this rule, so they are unaffected. Disabled buttons never go
+     :active, so they never bounce. */
+  button {
+    transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  button:active {
+    transform: scale(0.96);
+  }
 }
 
 .hatch-space-root { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--bg); }
