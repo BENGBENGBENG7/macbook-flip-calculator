@@ -2796,9 +2796,13 @@ function MenuSelect({
 type SortMode = "recommend" | "buyable" | "profit" | "priceAsc" | "newest";
 type FilterMode = "all" | "xianyu" | "carousell" | "liked";
 type LayoutMode = "single" | "multi";
-/* Model filter: exact chip match. Only the five Pro chips are offered;
-   Max / M6 / base-M4 listings show only under 全部型号. */
-type ModelFilter = "all" | "M1 Pro" | "M2 Pro" | "M3 Pro" | "M4 Pro" | "M5 Pro";
+/* Model filter: generation bucket, not an exact chip match. "M4 Pro"
+   means every M4-generation chip — base M4, M4 Pro and M4 Max alike
+   (same for the other generations). The option values keep their
+   "M4 Pro" shape so saved choices stay valid; the match strips the
+   " Pro" suffix and compares the generation prefix. M6 has no Pro/Max
+   chip in the data, so its bucket is just "M6". */
+type ModelFilter = "all" | "M1 Pro" | "M2 Pro" | "M3 Pro" | "M4 Pro" | "M5 Pro" | "M6";
 
 const LISTINGS_REFRESH_MS = 60 * 60 * 1000;
 
@@ -3032,7 +3036,12 @@ export function App() {
         (l) => l.platform === "carousell" || l.platform === "facebook",
       );
     else if (filter !== "all") rows = rows.filter((l) => l.platform === filter);
-    if (model !== "all") rows = rows.filter((l) => l.chip === model);
+    if (model !== "all") {
+      // Generation bucket (see ModelFilter): "M4 Pro" matches M4, M4 Pro
+      // and M4 Max; "M6" matches M6 and any future M6 Pro/Max.
+      const gen = model.replace(" Pro", "");
+      rows = rows.filter((l) => l.chip.startsWith(gen));
+    }
     let withCalc = rows.map((l) => ({ l, c: calc(l, rate) }));
     // 可买订单 lives in the sort dropdown, not the filter row: selecting
     // it filters the list (on top of the platform filter above) down to
@@ -3421,6 +3430,7 @@ export function App() {
                 { value: "M3 Pro", label: "M3 Pro" },
                 { value: "M4 Pro", label: "M4 Pro" },
                 { value: "M5 Pro", label: "M5 Pro" },
+                { value: "M6", label: "M6" },
               ]}
               onChange={(v) => {
                 setModel(v as ModelFilter);
