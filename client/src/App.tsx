@@ -316,7 +316,14 @@ function Card({
     ? (VERDICT_TEXT[c.verdict] ?? "text-[var(--text)]")
     : "text-[var(--text)]";
   return (
-    <article className="cv-card flex h-full flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+    <article className="cv-card relative flex h-full flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+      <SelectCheckbox
+        visible={multiSelect}
+        selected={isSelected}
+        label={isSelected ? `取消选择 ${title(listing)}` : `选择 ${title(listing)}`}
+        onToggle={() => onToggleSelect(listing.id)}
+        placement="photo"
+      />
       <button
         type="button"
         aria-label={`查看 ${title(listing)} 详情`}
@@ -335,16 +342,7 @@ function Card({
           ) : null}
         </div>
       </button>
-      <div
-        className="relative flex w-full flex-1 flex-col pb-3 pr-5 pt-4 transition-[padding-left] duration-200 ease-out"
-        style={{ paddingLeft: multiSelect ? 56 : 20 }}
-      >
-        <SelectCheckbox
-          visible={multiSelect}
-          selected={isSelected}
-          label={isSelected ? `取消选择 ${title(listing)}` : `选择 ${title(listing)}`}
-          onToggle={() => onToggleSelect(listing.id)}
-        />
+      <div className="relative flex w-full flex-1 flex-col pb-3 pl-5 pr-5 pt-4">
         <div className="flex items-start justify-between gap-2">
           <button
             type="button"
@@ -510,23 +508,30 @@ function ListRow({
 
 const MemoListRow = memo(ListRow);
 
-/* ---------- multi-select checkbox (inside the card frame) --------------
-   Rendered inside each card's text area, absolutely positioned at the
-   left edge. Fixed 22x22, flex:none, border-radius 50% — absolute
-   positioning plus pinned size means flex can never stretch it into
-   an oval, at any card height. Selected: green fill + white check;
-   unselected: faint outline. Hidden (opacity 0, no pointer events)
-   outside multi-select mode. */
+/* ---------- multi-select checkbox ----------------------------------------
+   Two placements, one component (fixed 22x22, flex:none, round — absolute
+   positioning plus pinned size means flex can never stretch it into an
+   oval, at any card height). Selected: green fill + white check;
+   unselected: faint outline (on a photo: translucent white disc + shadow
+   so it reads on any picture). Hidden (opacity 0, no pointer events)
+   outside multi-select mode.
+   - "photo": floats on the photo's top-left corner (single-column cards).
+     Nothing in the card moves when multi-select opens — no padding shift,
+     no text slide, no image reflow — so the photo can never be squeezed.
+   - "text": vertically centred at the left of the text area (multi-column
+     rows, which have no photo); the row's text padding makes room for it. */
 function SelectCheckbox({
   visible,
   selected,
   label,
   onToggle,
+  placement = "text",
 }: {
   visible: boolean;
   selected: boolean;
   label: string;
   onToggle: () => void;
+  placement?: "text" | "photo";
 }) {
   return (
     <button
@@ -536,18 +541,21 @@ function SelectCheckbox({
       aria-checked={selected}
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      className={`absolute left-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border-2 text-sm font-semibold leading-none transition-all duration-200 ease-out ${
-        visible ? "scale-100 opacity-100" : "scale-75 opacity-0"
-      }`}
+      className={`absolute z-20 flex items-center justify-center rounded-full border-2 text-sm font-semibold leading-none transition-all duration-200 ease-out ${
+        placement === "photo" ? "left-3 top-3" : "left-2 top-1/2 -translate-y-1/2"
+      } ${visible ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}
       style={{
         width: 22,
         height: 22,
         flex: "none",
         borderRadius: "50%",
         pointerEvents: visible ? "auto" : "none",
+        boxShadow: "0 1px 6px rgba(0,0,0,0.28)",
         ...(selected
           ? { backgroundColor: "var(--btn-green)", borderColor: "var(--btn-green)", color: "#fff" }
-          : { borderColor: "var(--faint)", color: "transparent", backgroundColor: "transparent" }),
+          : placement === "photo"
+            ? { borderColor: "rgba(255,255,255,0.95)", color: "transparent", backgroundColor: "rgba(255,255,255,0.75)" }
+            : { borderColor: "var(--faint)", color: "transparent", backgroundColor: "transparent" }),
       }}
       onClick={(e) => {
         e.stopPropagation();
@@ -635,15 +643,20 @@ function DeleteConfirmModal({
    One wrapper around a list item (Card in single mode, ListRow in multi
    mode) that adds three gestures which must not interfere:
    - short tap: open detail (normal mode) / toggle selection (multi-select)
-   - horizontal left swipe: reveal a red delete button (normal mode only);
-     tapping it opens a centred confirm modal (see DeleteConfirmModal)
+   - horizontal left swipe: reveal a small round red trash button (normal
+     mode only); tapping it opens a centred confirm modal (see
+     DeleteConfirmModal)
    - long-press 1s: enter multi-select, this item auto-selected
-   Layout: the card frame never moves. The checkbox lives inside the
-   frame, at the left of the card's text area (see SelectCheckbox); the
-   text's left padding grows 20/16px -> 56px on enter and back on exit,
-   so only the text slides right/left inside the frame — smooth both
-   ways via a 200ms padding transition. The swipe area holds the delete
-   action layer behind the item; the item translates left to reveal it.
+   Layout: the card frame never moves, and entering multi-select moves
+   nothing inside it either. In single-column cards the checkbox floats
+   on the photo's top-left corner (see SelectCheckbox "photo") — no
+   padding shift, no text slide, no image reflow — so the photo can
+   never be squeezed and the like button never moves. Multi-column rows
+   have no photo: the checkbox sits at the left of the row's text area
+   and the text's left padding grows 16px -> 56px on enter and back on
+   exit, so only the text slides inside the frame — smooth both ways
+   via a 200ms padding transition. The swipe area holds the delete
+   action behind the item; the item translates left to reveal it.
    Delete only appends to localStorage deletions (via onDelete, which
    opens the confirm modal) — listings.json is never written.
    The row is a no-select surface (user-select/callout off, selectstart
@@ -823,8 +836,12 @@ function SwipeableItem({
 
   return (
     <div className={`relative min-w-0 w-full overflow-hidden rounded-[10px] ${layout === "single" ? "h-full" : ""}`}>
-      {/* Delete action layer behind the item; the item translates left
-          to reveal it. Tapping Delete opens the centred confirm modal. */}
+      {/* Delete action behind the item: NOT a full-height slab — a small
+          round red trash button (48px) floating mid-height in the reveal
+          zone. A slab the height of a tall single-column card looked
+          heavy and ugly, and its square corners could never follow the
+          card's rounded border; a circle has no corners to mismatch.
+          Tapping it opens the centred confirm modal. */}
       <div
         className="absolute inset-y-0 right-0 z-0 w-[88px]"
         aria-hidden={!isSwipedOpen}
@@ -833,11 +850,13 @@ function SwipeableItem({
           type="button"
           data-swipe-delete
           aria-label="删除这台机器"
-          className="absolute inset-y-0 right-0 w-[88px] text-sm font-medium text-white"
+          className="absolute right-5 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-lg"
           style={{ backgroundColor: "var(--verdict-red)" }}
           onClick={() => onDelete(listing)}
         >
-          删除
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
+            <path d="M14.74 9l-.35 9m-3.788 0L10.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>
         </button>
       </div>
       <div
