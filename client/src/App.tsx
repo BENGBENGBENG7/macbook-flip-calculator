@@ -2865,9 +2865,43 @@ export function App() {
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   useEffect(() => subscribeLocal(() => setPersonal(readLocal())), []);
-  const save = useCallback((edit: Parameters<typeof editLocal>[0]) => {
-    void editLocal(edit).catch(() => setNotice("浏览器未能保存改动，请检查此网站的本地存储权限。"));
+  /* Auto-upload of personal state — the main screen syncs itself:
+     a like, unlike, delete or analysis edit on the list uploads to
+     user-data.json a few seconds later (debounced, so several quick
+     taps become one upload), so the user never has to tap 同步 just
+     to back up a like. Silent: no notice on success, and a failure is
+     simply retried on the next change or the next manual sync. Only
+     runs when a token is set; without one, likes stay on this device
+     only. The manual 同步 button is still the way to pull the newest
+     listings + rate. */
+  const autoUploadTimer = useRef<number | null>(null);
+  const autoUpload = useCallback(async () => {
+    const tok = readSyncToken();
+    if (!tok) return;
+    try {
+      const cloud = await fetchCloudPersonal().catch(() => null);
+      const merged = mergePersonal(readLocal(), cloud ?? { likes: {}, analysis: {}, deletions: [] });
+      await editLocal(s => { s.likes = merged.likes; s.analysis = merged.analysis; s.deletions = merged.deletions; });
+      await uploadCloudPersonal(tok, merged);
+    } catch {
+      // Silent — the next change or manual sync retries.
+    }
   }, []);
+  const scheduleAutoUpload = useCallback(() => {
+    if (autoUploadTimer.current) window.clearTimeout(autoUploadTimer.current);
+    autoUploadTimer.current = window.setTimeout(() => { void autoUpload(); }, 3000);
+  }, [autoUpload]);
+  useEffect(
+    () => () => {
+      if (autoUploadTimer.current) window.clearTimeout(autoUploadTimer.current);
+    },
+    [],
+  );
+  const save = useCallback((edit: Parameters<typeof editLocal>[0]) => {
+    void editLocal(edit)
+      .then(() => scheduleAutoUpload())
+      .catch(() => setNotice("浏览器未能保存改动，请检查此网站的本地存储权限。"));
+  }, [scheduleAutoUpload]);
   const [sort, setSort] = useState<SortMode>(() => {
     const s = localStorage.getItem(SORT_KEY);
     // "profit" is its own ranking (pure profit-high, no verdict
