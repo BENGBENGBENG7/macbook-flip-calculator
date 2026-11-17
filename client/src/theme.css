@@ -65,11 +65,12 @@
 }
 
 /* Filter-row pills (filter bar + sync): frosted glass at rest — nothing
-   stays lit. All pills use full-strength text (same grey as the
-   dropdown row above); the current view is marked only by the faint
-   dark halo around the outer ring (.filter-pill-active). Pressing a
-   pill turns it dark (the .glass-dark fill, swapped in while pressed);
-   on release the fill fades back to frosted + halo over 0.4s — the
+   stays lit. The pills use dim text, matching the dropdown row above
+   (trial 2026-11-17: both rows in the platform row's grey); the current
+   view is marked by the faint dark halo around the outer ring
+   (.filter-pill-active) plus full-strength text. Pressing a pill turns
+   it dark (the .glass-dark fill, swapped in while pressed); on release
+   the fill fades back to frosted + halo over 0.4s — the
    press-to-release gradient. The 90ms press duration (set inline while
    pressed) keeps the darkening instant; the 0.4s base duration makes
    the release a visible fade. */
