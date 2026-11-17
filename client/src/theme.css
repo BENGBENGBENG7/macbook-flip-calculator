@@ -65,13 +65,14 @@
 }
 
 /* Filter-row pills (filter bar + sync): frosted glass at rest — nothing
-   stays lit. The current view is marked only by a faint dark halo
-   around the outer ring (.filter-pill-active) plus full-strength text
-   (the rest stay dim). Pressing a pill turns it dark (the .glass-dark
-   fill, swapped in while pressed); on release the fill fades back to
-   frosted + halo over 0.4s — the press-to-release gradient. The 90ms
-   press duration (set inline while pressed) keeps the darkening
-   instant; the 0.4s base duration makes the release a visible fade. */
+   stays lit. All pills use full-strength text (same grey as the
+   dropdown row above); the current view is marked only by the faint
+   dark halo around the outer ring (.filter-pill-active). Pressing a
+   pill turns it dark (the .glass-dark fill, swapped in while pressed);
+   on release the fill fades back to frosted + halo over 0.4s — the
+   press-to-release gradient. The 90ms press duration (set inline while
+   pressed) keeps the darkening instant; the 0.4s base duration makes
+   the release a visible fade. */
 .filter-pill {
   transition:
     background-color 0.4s ease,
@@ -109,9 +110,9 @@
    be trusted to hide what's behind the panel — and the panel's base
    colour now does that job instead. Why the blur failed on the user's
    phone (both the -webkit- prefixed and standard backdrop-filter
-   declarations were already here): the menu lives inside the sticky
-   .glass-bar, and an ancestor with its own backdrop-filter forms a
-   Backdrop Root in WebKit — a descendant's backdrop-filter then only
+   declarations were already here): the menu used to live inside a
+   sticky bar with its own backdrop-filter, and such an ancestor forms
+   a Backdrop Root in WebKit — a descendant's backdrop-filter then only
    samples what is painted inside that root, so the list cards behind
    the bar were never the menu's backdrop to blur and showed through
    the translucent base almost unblurred. The base therefore carries
@@ -172,10 +173,20 @@
    frosting contributed almost nothing visible (6% of the backdrop
    showing through, itself blurred), so removing it changes the
    bar's look negligibly while taking its per-frame cost to zero. */
-.glass-bar {
-  background: color-mix(in srgb, var(--bg) 94%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+/* The two control rows (sort / model / layout + filters / sync) sit in
+   one frosted-glass panel, like a listing card. It rides the scroll
+   path (sticky header), so it carries no backdrop-filter: its 94%
+   opaque base keeps scrolling cards from showing through, and the top
+   highlight + shadow stack is what reads as glass — the same language
+   as the old full-bleed bar. No overflow clipping here: the dropdown
+   menus open downward out of this panel and must not be cut. */
+.glass-panel {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 8px 28px rgba(0, 0, 0, 0.1);
 }
 
 /* Scroll economy: backdrop-filter is the most expensive paint a
@@ -191,12 +202,11 @@
    opaque ground. So inside the home <main> the glass classes keep
    their translucent base, top highlight and shadow stack — the whole
    visible look — and drop only the backdrop-filter that was costing
-   a re-blur per frame for zero visible effect. The bar itself has
-   since dropped its backdrop-filter too (see .glass-bar): nothing
-   in the home scroll path re-blurs per frame any more. What keeps
-   its real frosting: the dropdown menu panel, and every glass
-   surface on the detail page and lightbox, none of which ride the
-   list's scroll. */
+   a re-blur per frame for zero visible effect. The control panel
+   carries none at all (see .glass-panel): nothing in the home scroll
+   path re-blurs per frame any more. What keeps its real frosting: the
+   dropdown menu panel, and every glass surface on the detail page and
+   lightbox, none of which ride the list's scroll. */
 main .glass,
 main .glass-green,
 main .glass-dark,

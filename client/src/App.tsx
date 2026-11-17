@@ -2085,8 +2085,8 @@ function Detail({
           snapItem.replaceChildren();
         }
       }
-      const realBar = home.querySelector(".glass-bar");
-      const snapBar = snap.querySelector(".glass-bar") as
+      const realBar = home.querySelector(".control-bar");
+      const snapBar = snap.querySelector(".control-bar") as
         | HTMLElement
         | null;
       if (snapBar) {
@@ -3474,7 +3474,8 @@ export function App() {
           />
         </header>
 
-        <div className="glass-bar sticky top-0 z-30 -mx-4 px-4 pb-2.5 pt-3">
+        <div className="control-bar sticky top-0 z-30 -mx-4 px-4 pb-2 pt-2">
+          <div className="glass-panel px-3 py-3">
           <div className="flex items-stretch gap-2.5">
             <MenuSelect
               ariaLabel="排序方式"
@@ -3537,7 +3538,7 @@ export function App() {
                       ? "glass-dark border-[var(--text)] text-white"
                       : filter === f.key
                         ? "glass filter-pill-active text-[var(--text)]"
-                        : "glass border-[var(--border)] text-[var(--dim)]"
+                        : "glass border-[var(--border)] text-[var(--text)]"
                   }`}
                   style={pressedKey === f.key ? { transitionDuration: "90ms" } : undefined}
                   onPointerDown={() => setPressedKey(f.key)}
@@ -3561,7 +3562,7 @@ export function App() {
               className={`filter-pill min-w-0 flex-1 rounded-full border px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
                 pressedKey === "sync"
                   ? "glass-dark border-[var(--text)] text-white"
-                  : "glass border-[var(--border)] text-[var(--dim)]"
+                  : "glass border-[var(--border)] text-[var(--text)]"
               }`}
               style={pressedKey === "sync" ? { transitionDuration: "90ms" } : undefined}
               onPointerDown={() => setPressedKey("sync")}
@@ -3572,6 +3573,7 @@ export function App() {
             >
               {syncing || state.isFetching || rateQuery.isFetching ? "同步中" : "同步"}
             </button>
+          </div>
           </div>
         </div>
 
