@@ -749,9 +749,10 @@ function TokenModal({
 /* ---------- centred notice popup (sync result, backup, token) ---------
    Replaces the old inline notice line under the filter bar. After a
    sync (or a backup/token action) the result appears as a frosted
-   glass card in the centre of the screen, with a small red dot in the
-   top-right corner — the macOS window close button — to dismiss it.
-   Tapping the dim backdrop or Escape closes it too. Both showing and
+   glass card in the centre of the screen. It closes by tapping
+   anywhere outside the card (the dim backdrop) or Escape — there is
+   no close button on the card itself (user decision 2026-11-17; the
+   small red dot that was there first was removed). Both showing and
    dismissing fade + scale gently over ~0.2s (see .notice-in/out in
    theme.css); the close waits out the exit animation before clearing
    the notice. The popup stays until dismissed — no auto-dismiss. */
@@ -787,19 +788,8 @@ function NoticePopup({
         onClick={close}
       />
       <div
-        className={`glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] px-5 pb-5 pt-8 ${leaving ? "notice-out" : "notice-in"}`}
+        className={`glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] p-5 ${leaving ? "notice-out" : "notice-in"}`}
       >
-        <button
-          type="button"
-          aria-label="关闭提醒"
-          className="absolute right-3 top-3 h-3 w-3 rounded-full"
-          /* Same trap as the multi-select checkbox (Round 6): theme.css
-             sets a global button min-height of 2rem, which stretches
-             this 12px dot into a tall red pill. minHeight/minWidth 0
-             here keeps it a true circle. */
-          style={{ backgroundColor: "var(--btn-red)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)", minHeight: 0, minWidth: 0 }}
-          onClick={close}
-        />
         <p className="text-center text-sm leading-6 text-[var(--text)]">{message}</p>
       </div>
     </div>
