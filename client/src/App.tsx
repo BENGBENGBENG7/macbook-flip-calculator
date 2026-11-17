@@ -1687,7 +1687,6 @@ function Detail({
   rate,
   onClose,
   onToggleLike,
-  onDelete,
   onSaveAnalysis,
   homeRef,
 }: {
@@ -1695,7 +1694,6 @@ function Detail({
   rate: number | null;
   onClose: () => void;
   onToggleLike: (l: Listing) => void;
-  onDelete: (l: Listing) => void;
   onSaveAnalysis: (id: string, a: Analysis) => void;
   /* The home (list) layer underneath this overlay. The swipe-back
      gesture writes its parallax pull straight onto this element and
@@ -1713,7 +1711,6 @@ function Detail({
   const [lightbox, setLightbox] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Analysis>(() => ({
     saleLow: listing.saleLow,
@@ -2611,39 +2608,6 @@ function Detail({
           )}
         </div>
 
-        <div className="mt-7 border-t border-[var(--border)] pt-5">
-          {confirming ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="确认删除这台机器"
-                className="rounded-full px-5 py-2 text-sm font-medium text-white"
-                style={{ backgroundColor: "var(--verdict-red)" }}
-                onClick={() => onDelete(listing)}
-              >
-                再点一次确认删除
-              </button>
-              <button
-                type="button"
-                aria-label="取消删除"
-                className="glass rounded-full border border-[var(--border)] px-5 py-2 text-sm text-[var(--text)]"
-                onClick={() => setConfirming(false)}
-              >
-                取消
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              aria-label="删除这台机器"
-              className="glass rounded-full border border-[var(--border)] px-5 py-2 text-sm"
-              style={{ color: "var(--verdict-red)" }}
-              onClick={() => setConfirming(true)}
-            >
-              删除
-            </button>
-          )}
-        </div>
       </div>
 
       {lightbox && images.length > 0 ? (
@@ -2664,7 +2628,7 @@ function Detail({
    re-render the whole detail page too — and every Detail render marks
    the swipe-back gesture's snapshot stale, so the next touch paid a
    full clone rebuild before the drag could engage. The callbacks are
-   all stable (deleteListing reads pending through a ref), so memo
+   all stable, so memo
    lets the page sit untouched until its own listing actually changes. */
 const MemoDetail = memo(Detail);
 
@@ -2971,15 +2935,11 @@ export function App() {
   const toggleLike = useCallback((l: Listing) => save(s => {
     s.likes[l.id] = !(s.likes[l.id] ?? false);
   }), [save]);
-  const deleteListing = useCallback((l: Listing) => {
-    save(s => { if (!s.deletions.includes(l.id)) s.deletions.push(l.id); });
-    closeDetail();
-  }, [closeDetail, save]);
 
   // List swipe-to-delete + multi-select. Deleting only appends ids to
-  // localStorage deletions (the list filters them out on the next read);
-  // the detail page keeps its own deleteListing above, which also
-  // closes the detail.
+  // localStorage deletions (the list filters them out on the next read).
+  // The detail page has no delete button (user decision 2026-11-17) —
+  // deletion happens from the home list only.
   const closeSwipe = useCallback(() => {
     setSwipedId(null);
   }, []);
@@ -3018,8 +2978,8 @@ export function App() {
     exitMultiSelect();
   }, [deleteFromList, exitMultiSelect, selectedIds]);
 
-  /* Delete confirm modal (home list only — the detail page keeps its
-     own inline two-step confirm). Tapping Delete — swipe single or the
+  /* Delete confirm modal (home list only — the detail page has no
+     delete button). Tapping Delete — swipe single or the
      multi-select toolbar — opens the modal; Confirm deletes, Cancel or
      the mask closes without deleting. */
   const requestSingleDelete = useCallback((l: Listing) => {
@@ -3457,7 +3417,6 @@ export function App() {
           rate={rate}
           onClose={closeDetail}
           onToggleLike={toggleLike}
-          onDelete={deleteListing}
           onSaveAnalysis={saveAnalysis}
           homeRef={homeRef}
         />
