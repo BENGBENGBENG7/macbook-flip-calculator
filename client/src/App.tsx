@@ -511,7 +511,13 @@ const MemoListRow = memo(ListRow);
 /* ---------- multi-select checkbox ----------------------------------------
    Two placements, one component (fixed 22x22, flex:none, round — absolute
    positioning plus pinned size means flex can never stretch it into an
-   oval, at any card height). Selected: green fill + white check;
+   oval, at any card height). The pin must include minHeight: 0 /
+   minWidth: 0: theme.css sets a global `button { min-height: 2rem }`
+   tap-target floor, and min-height beats height — without the override
+   a 22px button renders 22 wide x 32 tall, i.e. a vertical oval, and
+   shrinking width/height alone can never fix it (that exact bug
+   survived rounds 2–5 until the override landed). Selected: green
+   fill + white check;
    unselected: faint outline (on a photo: translucent white disc + shadow
    so it reads on any picture). Hidden (opacity 0, no pointer events)
    outside multi-select mode.
@@ -547,6 +553,8 @@ function SelectCheckbox({
       style={{
         width: 22,
         height: 22,
+        minWidth: 0,
+        minHeight: 0,
         flex: "none",
         borderRadius: "50%",
         pointerEvents: visible ? "auto" : "none",
