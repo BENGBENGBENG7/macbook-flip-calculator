@@ -746,6 +746,62 @@ function TokenModal({
   );
 }
 
+/* ---------- centred notice popup (sync result, backup, token) ---------
+   Replaces the old inline notice line under the filter bar. After a
+   sync (or a backup/token action) the result appears as a frosted
+   glass card in the centre of the screen, with a small red dot in the
+   top-right corner — the macOS window close button — to dismiss it.
+   Tapping the dim backdrop or Escape closes it too. Both showing and
+   dismissing fade + scale gently over ~0.2s (see .notice-in/out in
+   theme.css); the close waits out the exit animation before clearing
+   the notice. The popup stays until dismissed — no auto-dismiss. */
+function NoticePopup({
+  message,
+  onClose,
+}: {
+  message: string;
+  onClose: () => void;
+}) {
+  const [leaving, setLeaving] = useState(false);
+  const close = useCallback(() => {
+    if (leaving) return;
+    setLeaving(true);
+    window.setTimeout(onClose, 180);
+  }, [leaving, onClose]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [close]);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      role="status"
+      aria-label={message}
+    >
+      <div
+        aria-hidden
+        className={`absolute inset-0 bg-black/15 backdrop-blur-[2px] ${leaving ? "notice-backdrop-out" : "lightbox-enter"}`}
+        onClick={close}
+      />
+      <div
+        className={`glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] px-5 pb-5 pt-8 ${leaving ? "notice-out" : "notice-in"}`}
+      >
+        <button
+          type="button"
+          aria-label="关闭提醒"
+          className="absolute right-3 top-3 h-3 w-3 rounded-full"
+          style={{ backgroundColor: "var(--btn-red)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)" }}
+          onClick={close}
+        />
+        <p className="text-center text-sm leading-6 text-[var(--text)]">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- home list item: swipe-to-delete + long-press multi-select -----
    One wrapper around a list item (Card in single mode, ListRow in multi
    mode) that adds three gestures which must not interfere:
@@ -3278,7 +3334,6 @@ export function App() {
           </div>
         </div>
 
-        {notice && <p role="status" className="mt-2 text-sm">{notice}</p>}
         {state.isRefetchError && <p role="status" className="mt-2 text-sm">清单更新失败，当前显示上次读取的结果。</p>}
         <div className="no-select pt-5">
           {state.isPending ? (
@@ -3432,6 +3487,10 @@ export function App() {
           onClear={onClearToken}
           onCancel={() => setTokenModalOpen(false)}
         />
+      ) : null}
+
+      {notice ? (
+        <NoticePopup message={notice} onClose={() => setNotice("")} />
       ) : null}
 
       {openListing ? (

@@ -64,12 +64,12 @@
     border-color 0.4s ease;
 }
 .filter-pill-active {
-  border-color: color-mix(in srgb, var(--btn-green) 45%, transparent);
+  border-color: color-mix(in srgb, var(--btn-green) 30%, transparent);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
-    inset 0 0 0 1px color-mix(in srgb, var(--btn-green) 28%, transparent),
-    0 0 10px color-mix(in srgb, var(--btn-green) 26%, transparent),
-    0 6px 18px color-mix(in srgb, var(--btn-green) 16%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--btn-green) 16%, transparent),
+    0 0 8px color-mix(in srgb, var(--btn-green) 13%, transparent),
+    0 4px 14px color-mix(in srgb, var(--btn-green) 9%, transparent),
     0 8px 28px rgba(0, 0, 0, 0.1);
 }
 
@@ -353,6 +353,47 @@ main .glass-red {
   animation: ms-bar-in 200ms ease-out both;
 }
 
+/* Centred notice popup (sync result, backup, token): gently fades +
+   scales in, and the same way out. Short on purpose (~0.2s) — just
+   enough that it never pops in or out abruptly. */
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes notice-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+@keyframes notice-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.notice-in {
+  animation: notice-in 0.2s ease-out both;
+}
+.notice-out {
+  animation: notice-out 0.18s ease-in both;
+}
+.notice-backdrop-out {
+  animation: notice-backdrop-out 0.18s ease-in both;
+}
+
 /* Long-press must never trigger the OS text-selection callout: the home
    list is an app surface, not a document. Applied to the list area and
    each row (see SwipeableItem's track). */
@@ -371,7 +412,10 @@ main .glass-red {
   .lightbox-enter,
   .menu-panel-in,
   .menu-panel-out,
-  .ms-bar-in {
+  .ms-bar-in,
+  .notice-in,
+  .notice-out,
+  .notice-backdrop-out {
     animation: none;
   }
 }
