@@ -48,6 +48,7 @@ type Listing,
 const SORT_KEY = "macbook-flip-sort";
 const FILTER_KEY = "macbook-flip-filter";
 const LAYOUT_KEY = "macbook-flip-layout";
+const MODEL_KEY = "macbook-flip-model";
 // Session-scoped record of the detail currently open. The #item= hash
 // is the primary marker, but a host-forced reload (e.g. a native
 // pull-to-refresh that slips past the overscroll guard) restarts the
@@ -2828,6 +2829,9 @@ function MenuSelect({
 type SortMode = "recommend" | "buyable" | "profit" | "priceAsc" | "newest";
 type FilterMode = "all" | "xianyu" | "carousell" | "liked";
 type LayoutMode = "single" | "multi";
+/* Model filter: exact chip match. Only the five Pro chips are offered;
+   Max / M6 / base-M4 listings show only under 全部型号. */
+type ModelFilter = "all" | "M1 Pro" | "M2 Pro" | "M3 Pro" | "M4 Pro" | "M5 Pro";
 
 const LISTINGS_REFRESH_MS = 60 * 60 * 1000;
 
@@ -2855,6 +2859,12 @@ export function App() {
   const [filter, setFilter] = useState<FilterMode>(() => {
     const f = localStorage.getItem(FILTER_KEY);
     return f === "xianyu" || f === "carousell" || f === "liked" ? f : "all";
+  });
+  const [model, setModel] = useState<ModelFilter>(() => {
+    const m = localStorage.getItem(MODEL_KEY);
+    return m === "M1 Pro" || m === "M2 Pro" || m === "M3 Pro" || m === "M4 Pro" || m === "M5 Pro"
+      ? m
+      : "all";
   });
   /* Filter-row press flash: which pill (filter key, or "sync") the
      finger is holding down. While held it lights green; on release it
@@ -2916,6 +2926,9 @@ export function App() {
     localStorage.setItem(FILTER_KEY, filter);
   }, [filter]);
   useEffect(() => {
+    localStorage.setItem(MODEL_KEY, model);
+  }, [model]);
+  useEffect(() => {
     localStorage.setItem(LAYOUT_KEY, layout);
   }, [layout]);
 
@@ -2944,6 +2957,7 @@ export function App() {
         (l) => l.platform === "carousell" || l.platform === "facebook",
       );
     else if (filter !== "all") rows = rows.filter((l) => l.platform === filter);
+    if (model !== "all") rows = rows.filter((l) => l.chip === model);
     let withCalc = rows.map((l) => ({ l, c: calc(l, rate) }));
     // 可买订单 lives in the sort dropdown, not the filter row: selecting
     // it filters the list (on top of the platform filter above) down to
@@ -2968,7 +2982,7 @@ export function App() {
       return (b.c.profitHigh ?? -Infinity) - (a.c.profitHigh ?? -Infinity);
     });
     return withCalc.map((x) => x.l);
-  }, [listings, filter, sort, rate]);
+  }, [listings, filter, model, sort, rate]);
 
   const openListing = openId ? listings.find((l) => l.id === openId) : undefined;
 
@@ -3267,6 +3281,22 @@ export function App() {
               ]}
               onChange={(v) => {
                 setSort(v as SortMode);
+                scrollTop();
+              }}
+            />
+            <MenuSelect
+              ariaLabel="型号筛选"
+              value={model}
+              options={[
+                { value: "all", label: "全部型号" },
+                { value: "M1 Pro", label: "M1 Pro" },
+                { value: "M2 Pro", label: "M2 Pro" },
+                { value: "M3 Pro", label: "M3 Pro" },
+                { value: "M4 Pro", label: "M4 Pro" },
+                { value: "M5 Pro", label: "M5 Pro" },
+              ]}
+              onChange={(v) => {
+                setModel(v as ModelFilter);
                 scrollTop();
               }}
             />
