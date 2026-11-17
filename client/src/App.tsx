@@ -876,6 +876,7 @@ function SwipeableItem({
   onEnterMultiSelect: (id: string) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const deleteBtnRef = useRef<HTMLButtonElement | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   const offsetRef = useRef(0);
   const dragging = useRef(false);
@@ -890,6 +891,24 @@ function SwipeableItem({
     el.style.transition = animate ? "transform 200ms ease-out" : "none";
     el.style.transform = px === 0 ? "" : `translateX(${px}px)`;
     offsetRef.current = px;
+    /* The delete button fades in WITH the drag instead of popping: the
+       drag progress 0 (rest) -> 1 (fully open) drives its opacity
+       0 -> 1, a 0.6 -> 1 scale-up and a 16px glide into place, so the
+       grey reveal zone turns red gradually as the finger pulls, and
+       eases back the same way on release. While dragging there is no
+       transition — the finger drives it frame by frame, like the card;
+       on snap the same 200ms ease-out as the card keeps button and
+       card in step. Written straight to the button's style (no React
+       state) so it stays at 60fps. */
+    const btn = deleteBtnRef.current;
+    if (btn) {
+      const progress = Math.min(1, Math.max(0, -px / SWIPE_DELETE_W));
+      btn.style.transition = animate
+        ? "opacity 200ms ease-out, transform 200ms ease-out"
+        : "none";
+      btn.style.opacity = String(progress);
+      btn.style.transform = `translateY(-50%) translateX(${(1 - progress) * 16}px) scale(${0.6 + 0.4 * progress})`;
+    }
   }, []);
 
   // Sync the row position when the parent opens/closes/confirms it
@@ -1026,12 +1045,15 @@ function SwipeableItem({
           zone. A slab the height of a tall single-column card looked
           heavy and ugly, and its square corners could never follow the
           card's rounded border; a circle has no corners to mismatch.
+          It fades, scales and glides in with the drag (see setOffset),
+          so the reveal turns red gradually instead of popping.
           Tapping it opens the centred confirm modal. */}
       <div
         className="absolute inset-y-0 right-0 z-0 w-[88px]"
         aria-hidden={!isSwipedOpen}
       >
         <button
+          ref={deleteBtnRef}
           type="button"
           data-swipe-delete
           aria-label="删除这台机器"
