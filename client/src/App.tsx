@@ -3381,9 +3381,9 @@ export function App() {
                   aria-pressed={filter === f.key}
                   className={`filter-pill min-w-0 flex-1 overflow-hidden rounded-full border px-0.5 py-2.5 text-center text-[10px] tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
                     pressedKey === f.key
-                      ? "glass-green border-[var(--btn-green)] text-white"
+                      ? "glass-dark border-[var(--text)] text-white"
                       : filter === f.key
-                        ? "glass filter-pill-active text-[var(--dim)]"
+                        ? "glass filter-pill-active text-[var(--text)]"
                         : "glass border-[var(--border)] text-[var(--dim)]"
                   }`}
                   style={pressedKey === f.key ? { transitionDuration: "90ms" } : undefined}
@@ -3407,7 +3407,7 @@ export function App() {
               disabled={syncing || state.isFetching || rateQuery.isFetching}
               className={`filter-pill min-w-0 flex-1 rounded-full border px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
                 pressedKey === "sync"
-                  ? "glass-green border-[var(--btn-green)] text-white"
+                  ? "glass-dark border-[var(--text)] text-white"
                   : "glass border-[var(--border)] text-[var(--dim)]"
               }`}
               style={pressedKey === "sync" ? { transitionDuration: "90ms" } : undefined}

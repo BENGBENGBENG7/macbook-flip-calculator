@@ -33,9 +33,9 @@
 }
 
 /* Green frosted glass in the macOS traffic-light family: Save still
-   uses it solid. The category filters and the sync button now use it
-   only as a transient press flash (see .filter-pill below) — at rest
-   they are plain .glass, so nothing in the filter row stays lit. */
+   uses it solid. The filter row used to flash it on press; since
+   2026-11-17 the row is monochrome (see .glass-dark) and uses no
+   green at all — at rest its pills are plain .glass. */
 .glass-green {
   background: color-mix(in srgb, var(--btn-green) 82%, #046a1b);
   -webkit-backdrop-filter: blur(24px) saturate(2);
@@ -48,14 +48,30 @@
     0 10px 28px rgba(0, 0, 0, 0.2);
 }
 
+/* Dark frosted glass: the filter row's press flash, monochrome (user
+   decision 2026-11-17 — the row is black/white/grey, no colour). Same
+   structure as .glass-green, but the fill is a fixed near-black so it
+   reads in light and dark mode alike; white text on top. */
+.glass-dark {
+  background: rgba(20, 20, 22, 0.88);
+  -webkit-backdrop-filter: blur(24px) saturate(2);
+  backdrop-filter: blur(24px) saturate(2);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent),
+    inset 0 -14px 22px -16px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.24),
+    0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
 /* Filter-row pills (filter bar + sync): frosted glass at rest — nothing
-   stays lit. The current view is marked only by a faint green halo
-   around the outer ring (.filter-pill-active). Pressing a pill lights
-   it green (the .glass-green fill, swapped in while pressed); on
-   release the fill fades back to frosted + halo over 0.4s — the
-   press-to-release gradient. The 90ms press duration (set inline
-   while pressed) keeps the light instant; the 0.4s base duration
-   makes the release a visible fade. */
+   stays lit. The current view is marked only by a faint dark halo
+   around the outer ring (.filter-pill-active) plus full-strength text
+   (the rest stay dim). Pressing a pill turns it dark (the .glass-dark
+   fill, swapped in while pressed); on release the fill fades back to
+   frosted + halo over 0.4s — the press-to-release gradient. The 90ms
+   press duration (set inline while pressed) keeps the darkening
+   instant; the 0.4s base duration makes the release a visible fade. */
 .filter-pill {
   transition:
     background-color 0.4s ease,
@@ -64,12 +80,12 @@
     border-color 0.4s ease;
 }
 .filter-pill-active {
-  border-color: color-mix(in srgb, var(--btn-green) 30%, transparent);
+  border-color: color-mix(in srgb, var(--text) 30%, transparent);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
-    inset 0 0 0 1px color-mix(in srgb, var(--btn-green) 16%, transparent),
-    0 0 8px color-mix(in srgb, var(--btn-green) 13%, transparent),
-    0 4px 14px color-mix(in srgb, var(--btn-green) 9%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 16%, transparent),
+    0 0 8px color-mix(in srgb, var(--text) 13%, transparent),
+    0 4px 14px color-mix(in srgb, var(--text) 9%, transparent),
     0 8px 28px rgba(0, 0, 0, 0.1);
 }
 
@@ -114,9 +130,10 @@
     0 16px 44px rgba(0, 0, 0, 0.22);
 }
 
-/* Green frosted glass for the original-post link: the same traffic-light
-   maximise green as the category filters and the sync button (.glass-green),
-   with white text so the label stays clearly readable on it. */
+/* Green frosted glass for the original-post link: the traffic-light
+   maximise green (.glass-green), with white text so the label stays
+   clearly readable on it. (The filter row no longer shares this green
+   — since 2026-11-17 it is monochrome.) */
 .glass-link {
   background: color-mix(in srgb, var(--btn-green) 82%, #046a1b);
   -webkit-backdrop-filter: blur(24px) saturate(2);
@@ -182,6 +199,7 @@
    list's scroll. */
 main .glass,
 main .glass-green,
+main .glass-dark,
 main .glass-red {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
