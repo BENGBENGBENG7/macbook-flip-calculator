@@ -41,7 +41,6 @@ feeFraction,
 fmtMoney,
 platformName,
 title,
-type Analysis,
 type Listing,
 } from "./flip";
 
@@ -1767,14 +1766,12 @@ function Detail({
   rate,
   onClose,
   onToggleLike,
-  onSaveAnalysis,
   homeRef,
 }: {
   listing: Listing;
   rate: number | null;
   onClose: () => void;
   onToggleLike: (l: Listing) => void;
-  onSaveAnalysis: (id: string, a: Analysis) => void;
   /* The home (list) layer underneath this overlay. The swipe-back
      gesture writes its parallax pull straight onto this element and
      animates the blur radius of a static snapshot of it above it, so
@@ -1791,33 +1788,6 @@ function Detail({
   const [lightbox, setLightbox] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [editing, setEditing] = useState(false);
-  /* The editor's draft is reset from the listing every time it opens
-     and on cancel (audit 2026-11-17): cancelled edits used to reappear
-     the next time the editor opened, because the draft was only ever
-     initialised once. */
-  const resetDraft = useCallback(() => {
-    setDraft({
-      saleLow: listing.saleLow,
-      saleHigh: listing.saleHigh,
-      sampleCount: listing.sampleCount,
-      soldSource: listing.soldSource,
-      shippingSgd: listing.shippingSgd,
-      repairSgd: listing.repairSgd,
-      feePercent: listing.feePercent,
-      targetProfit: listing.targetProfit,
-    });
-  }, [listing]);
-  const [draft, setDraft] = useState<Analysis>(() => ({
-    saleLow: listing.saleLow,
-    saleHigh: listing.saleHigh,
-    sampleCount: listing.sampleCount,
-    soldSource: listing.soldSource,
-    shippingSgd: listing.shippingSgd,
-    repairSgd: listing.repairSgd,
-    feePercent: listing.feePercent,
-    targetProfit: listing.targetProfit,
-  }));
   const c = calc(listing, rate);
   const safeIdx = Math.min(idx, Math.max(0, images.length - 1));
 
@@ -2456,38 +2426,6 @@ function Detail({
     };
   }, [homeRef]);
 
-  const numField = (
-    label: string,
-    key: keyof Analysis,
-    step = "1",
-  ) => (
-    <label className="block">
-      <span className="text-sm text-[var(--dim)]">{label}</span>
-      <input
-        aria-label={label}
-        type="number"
-        inputMode="decimal"
-        step={step}
-        className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base text-[var(--text)]"
-        value={
-          draft[key] == null ? "" : String(draft[key] as number)
-        }
-        onChange={(e) => {
-          const v = e.target.value;
-          /* Typing ".", "-" or "e" alone is not a number yet — Number()
-             would store NaN, which serialises to JSON null and fails the
-             zod schema on the next read, bricking the app. Ignore the
-             keystroke instead; the field keeps its last good value. */
-          if (v !== "" && !Number.isFinite(Number(v))) return;
-          setDraft((d) => ({
-            ...d,
-            [key]: v === "" ? null : Number(v),
-          }));
-        }}
-      />
-    </label>
-  );
-
   return (
     <div
       ref={rootRef}
@@ -2645,75 +2583,6 @@ function Detail({
             </p>
           </div>
         ) : null}
-
-        <div className="mt-7">
-          {editing ? (
-            <div className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-5">
-              <div className="grid grid-cols-2 gap-4">
-                {numField("成交价低（S$）", "saleLow", "0.01")}
-                {numField("成交价高（S$）", "saleHigh", "0.01")}
-                {numField("成交笔数", "sampleCount")}
-                {numField("额外运费（S$）", "shippingSgd", "0.01")}
-                {numField("维修费（S$）", "repairSgd", "0.01")}
-                {numField("手续费（%）", "feePercent", "0.01")}
-                {numField("目标利润（S$）", "targetProfit", "0.01")}
-                <label className="block">
-                  <span className="text-sm text-[var(--dim)]">成交来源</span>
-                  <input
-                    aria-label="成交来源"
-                    type="text"
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base text-[var(--text)]"
-                    value={draft.soldSource}
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, soldSource: e.target.value }))
-                    }
-                  />
-                </label>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <button
-                  type="button"
-                  aria-label="保存分析"
-                  className="glass-green rounded-full px-5 py-2 text-sm font-medium text-white"
-                  onClick={() => {
-                    onSaveAnalysis(listing.id, {
-                      ...draft,
-                      saleLow: draft.saleLow ?? null,
-                      saleHigh: draft.saleHigh ?? null,
-                      sampleCount: draft.sampleCount ?? 0,
-                    });
-                    setEditing(false);
-                  }}
-                >
-                  保存
-                </button>
-                <button
-                  type="button"
-                  aria-label="取消编辑分析"
-                  className="glass rounded-full border border-[var(--border)] px-5 py-2 text-sm text-[var(--text)]"
-                  onClick={() => {
-                    resetDraft();
-                    setEditing(false);
-                  }}
-                >
-                  取消
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              aria-label="编辑分析"
-              className="glass rounded-full border border-[var(--border)] px-5 py-2 text-sm text-[var(--text)]"
-              onClick={() => {
-                resetDraft();
-                setEditing(true);
-              }}
-            >
-              编辑分析
-            </button>
-          )}
-        </div>
 
       </div>
 
@@ -3261,26 +3130,6 @@ export function App() {
     setDeleteConfirm(null);
   }, [deleteConfirm, deleteOneFromList, deleteSelected]);
   const cancelDelete = useCallback(() => setDeleteConfirm(null), []);
-  /* Defensive coercion (audit 2026-11-17): a hand-edited number field
-     must never store NaN — Number(".") is NaN, NaN ?? 0 is still NaN,
-     and NaN serialises to JSON null, which fails the zod schema on the
-     next read and bricks the app. The input itself already ignores
-     non-finite keystrokes; this is the backstop. */
-  const saveAnalysis = useCallback((id: string, a: Analysis) => save(s => {
-    const num = (n: number | null | undefined, fallback: number) =>
-      typeof n === "number" && Number.isFinite(n) ? n : fallback;
-    s.analysis[id] = {
-      ...a,
-      saleLow: a.saleLow == null || !Number.isFinite(a.saleLow) ? null : a.saleLow,
-      saleHigh: a.saleHigh == null || !Number.isFinite(a.saleHigh) ? null : a.saleHigh,
-      sampleCount: Math.max(0, Math.trunc(num(a.sampleCount, 0))),
-      shippingSgd: num(a.shippingSgd, 0),
-      repairSgd: num(a.repairSgd, 0),
-      feePercent: num(a.feePercent, 0),
-      targetProfit: num(a.targetProfit, 0),
-    };
-  }), [save]);
-
   const exportBackup = useCallback(() => {
     const blob = new Blob([exportLocal()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -3791,7 +3640,6 @@ export function App() {
           rate={rate}
           onClose={closeDetail}
           onToggleLike={toggleLike}
-          onSaveAnalysis={saveAnalysis}
           homeRef={homeRef}
         />
       ) : null}
