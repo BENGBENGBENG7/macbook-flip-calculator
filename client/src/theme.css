@@ -460,8 +460,6 @@ main .glass-red {
   --dim: #666666;
   --faint: #999999;
   --border: #e5e5e5;
-  --accent: #111111;
-  --accent-text: #ffffff;
   /* macOS window traffic-light family: the close red and the
      maximise green are the app's two accent colours. */
   --btn-red: #ff5f57;
@@ -476,12 +474,6 @@ main .glass-red {
   --verdict-red: #b3261e;
   --verdict-yellow: #8a6d00;
   --verdict-green: #1e6b3a;
-  --radius: 10px;
-  --space-surface: var(--surface);
-  --space-surface-alt: var(--surface);
-  --space-muted: var(--dim);
-  --space-border: var(--border);
-  --space-accent: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -492,8 +484,6 @@ main .glass-red {
     --dim: #a3a3a3;
     --faint: #737373;
     --border: #2e2e2e;
-    --accent: #f2f2f2;
-    --accent-text: #111111;
     --btn-red: #ff6961;
     --btn-green: #32d74b;
     --glass-hi: rgba(255, 255, 255, 0.16);

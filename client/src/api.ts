@@ -83,12 +83,21 @@ async function getState(signal?: AbortSignal) {
   const response = await fetch(feedUrl, { signal, cache: "no-cache", credentials: "omit", referrerPolicy: "no-referrer" });
   if (!response.ok) throw new Error("机器清单读取失败");
   const json = await response.json();
-  const parsed = z.array(listingInput).parse(Array.isArray(json) ? json : json?.listings);
+  /* Validate per item, not the whole array: one malformed row used to
+     throw and take the entire feed down with it. Bad rows are skipped
+     and counted so the UI can say so. */
+  const arr = Array.isArray(json) ? json : json?.listings;
+  const rowsList = Array.isArray(arr) ? arr : [];
+  const parsed = rowsList.flatMap((row) => {
+    const r = listingInput.safeParse(row);
+    return r.success ? [r.data] : [];
+  });
+  const skipped = rowsList.length - parsed.length;
   const rows = new Map(parsed.map(row => [row.id, row]));
   if (signal?.aborted) throw signal.reason;
   await rememberFeed([...rows.keys()]);
   galleries = new Map([...rows.values()].map(row => [row.id, row.images.length ? row.images : row.image ? [row.image] : []]));
-  return { listings: [...rows.values()].map(normalize) };
+  return { listings: [...rows.values()].map(normalize), skipped };
 }
 async function getRate() {
   const raw = localStorage.getItem(rateKey);

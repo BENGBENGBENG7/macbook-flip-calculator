@@ -49,6 +49,12 @@ const SORT_KEY = "macbook-flip-sort";
 const FILTER_KEY = "macbook-flip-filter";
 const LAYOUT_KEY = "macbook-flip-layout";
 const MODEL_KEY = "macbook-flip-model";
+/* Shared lock (audit 2026-11-17): while any dropdown menu is open, list
+   gestures (long-press to multi-select, swipe-to-delete) are suppressed
+   — a touch elsewhere only closes the menu. MenuSelect sets it;
+   SwipeableItem reads it. A plain counter, not React state: the menu
+   and the rows are siblings and the check runs inside touch handlers. */
+let menuOpenCount = 0;
 // Session-scoped record of the detail currently open. The #item= hash
 // is the primary marker, but a host-forced reload (e.g. a native
 // pull-to-refresh that slips past the overscroll guard) restarts the
@@ -119,10 +125,13 @@ function Money({
       sgdValue != null ? fmtMoney(sgdValue, "sgd") : fmtMoney(cnyValue ?? 0, "cny");
     return <span className={className}>{text}</span>;
   }
+  /* Both values are derived above whenever either input exists, so by
+     here at most one can be null — the ?? 0 fallbacks are only a
+     type-level guard, never real math. */
   const text =
     cur === "sgd"
-      ? fmtMoney(sgdValue ?? (cnyValue ?? 0) / rate, "sgd")
-      : fmtMoney(cnyValue ?? (sgdValue ?? 0) * rate, "cny");
+      ? fmtMoney(sgdValue ?? 0, "sgd")
+      : fmtMoney(cnyValue ?? 0, "cny");
   return (
     <button
       type="button"
@@ -180,9 +189,10 @@ function MoneyRange({
 /* ---------- small pieces ------------------------------------------------- */
 
 /* Verdict colours follow the traffic-light family used across the app:
-   green is the exact .glass-green mix behind the 全部 / 同步 buttons (the
-   maximise green), red is the close-button red the like buttons use
-   (--btn-red). Yellow keeps its own token. */
+   green is the maximise green (.glass-green), red is the close-button
+   red the like buttons use (--btn-red). Yellow keeps its own token.
+   (The filter row used to share the green; since 2026-11-17 it is
+   monochrome — dark halo, dark press flash.) */
 const VERDICT_COLOR: Record<string, string> = {
   red: "var(--btn-red)",
   yellow: "var(--verdict-yellow)",
@@ -595,8 +605,8 @@ function SelectCheckbox({
    glass (.glass) with coloured text only — Confirm in --btn-red,
    Cancel in --btn-green — no solid fills, so the dialog stays light
    and calm. The mask is a very light dim (black 15%) with a 2px blur.
-   Cancel or the mask closes without deleting. The detail page keeps
-   its own inline confirm; untouched. */
+   Cancel or the mask closes without deleting. Deletion happens from
+   the home list only (the detail page has no delete button). */
 type DeleteConfirm =
   | { kind: "single"; listing: Listing }
   | { kind: "bulk"; count: number };
@@ -907,6 +917,14 @@ function SwipeableItem({
   }, []);
 
   const handleTouchStart = (e: ReactTouchEvent) => {
+    // A menu is open: this touch only closes the menu (the MenuSelect
+    // click guard swallows the click, the mousedown closes the menu) —
+    // it must not start a long-press or a swipe on the row underneath.
+    if (menuOpenCount > 0) {
+      clearLongPress();
+      start.current = null;
+      return;
+    }
     // A stale suppress flag (a long-press whose click never fired) must
     // not swallow the next real tap.
     suppressClick.current = false;
@@ -1018,6 +1036,8 @@ function SwipeableItem({
           type="button"
           data-swipe-delete
           aria-label="删除这台机器"
+          tabIndex={isSwipedOpen ? 0 : -1}
+          disabled={!isSwipedOpen}
           className="absolute right-5 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-lg"
           style={{ backgroundColor: "var(--verdict-red)" }}
           onClick={() => onDelete(listing)}
@@ -1449,7 +1469,6 @@ function Carousel({
     if (step > 0 && idxRef.current > 0) {
       track.scrollLeft = idxRef.current * step;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Follow external index changes (thumbnail taps): smooth-scroll the
@@ -1773,6 +1792,22 @@ function Detail({
   const [leaving, setLeaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
+  /* The editor's draft is reset from the listing every time it opens
+     and on cancel (audit 2026-11-17): cancelled edits used to reappear
+     the next time the editor opened, because the draft was only ever
+     initialised once. */
+  const resetDraft = useCallback(() => {
+    setDraft({
+      saleLow: listing.saleLow,
+      saleHigh: listing.saleHigh,
+      sampleCount: listing.sampleCount,
+      soldSource: listing.soldSource,
+      shippingSgd: listing.shippingSgd,
+      repairSgd: listing.repairSgd,
+      feePercent: listing.feePercent,
+      targetProfit: listing.targetProfit,
+    });
+  }, [listing]);
   const [draft, setDraft] = useState<Analysis>(() => ({
     saleLow: listing.saleLow,
     saleHigh: listing.saleHigh,
@@ -2439,6 +2474,11 @@ function Detail({
         }
         onChange={(e) => {
           const v = e.target.value;
+          /* Typing ".", "-" or "e" alone is not a number yet — Number()
+             would store NaN, which serialises to JSON null and fails the
+             zod schema on the next read, bricking the app. Ignore the
+             keystroke instead; the field keeps its last good value. */
+          if (v !== "" && !Number.isFinite(Number(v))) return;
           setDraft((d) => ({
             ...d,
             [key]: v === "" ? null : Number(v),
@@ -2651,7 +2691,10 @@ function Detail({
                   type="button"
                   aria-label="取消编辑分析"
                   className="glass rounded-full border border-[var(--border)] px-5 py-2 text-sm text-[var(--text)]"
-                  onClick={() => setEditing(false)}
+                  onClick={() => {
+                    resetDraft();
+                    setEditing(false);
+                  }}
                 >
                   取消
                 </button>
@@ -2662,7 +2705,10 @@ function Detail({
               type="button"
               aria-label="编辑分析"
               className="glass rounded-full border border-[var(--border)] px-5 py-2 text-sm text-[var(--text)]"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                resetDraft();
+                setEditing(true);
+              }}
             >
               编辑分析
             </button>
@@ -2719,6 +2765,16 @@ function MenuSelect({
   const [closing, setClosing] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<number | null>(null);
+
+  /* While this menu is open, list gestures are locked (see the
+     menuOpenCount flag at the top of the file). */
+  useEffect(() => {
+    if (!open) return;
+    menuOpenCount += 1;
+    return () => {
+      menuOpenCount -= 1;
+    };
+  }, [open ]);
 
   const close = useCallback(() => {
     setClosing(true);
@@ -2874,19 +2930,39 @@ export function App() {
      runs when a token is set; without one, likes stay on this device
      only. The manual 同步 button is still the way to pull the newest
      listings + rate. */
-  const autoUploadTimer = useRef<number | null>(null);
-  const autoUpload = useCallback(async () => {
-    const tok = readSyncToken();
-    if (!tok) return;
-    try {
-      const cloud = await fetchCloudPersonal().catch(() => null);
-      const merged = mergePersonal(readLocal(), cloud ?? { likes: {}, analysis: {}, deletions: [] });
-      await editLocal(s => { s.likes = merged.likes; s.analysis = merged.analysis; s.deletions = merged.deletions; });
-      await uploadCloudPersonal(tok, merged);
-    } catch {
-      // Silent — the next change or manual sync retries.
-    }
+  /* Uploads run through one chain: auto-upload and manual sync both do
+     fetch → merge → upload, and two overlapping runs can merge from the
+     same stale cloud snapshot, so a like saved in between goes missing
+     from the cloud until the next upload. Chaining them makes the later
+     run merge from the earlier run's freshly uploaded state. */
+  const uploadQueue = useRef<Promise<void>>(Promise.resolve());
+  const queueUpload = useCallback(<T,>(job: () => Promise<T>): Promise<T> => {
+    const run = uploadQueue.current.then(job, job);
+    uploadQueue.current = run.then(
+      () => {},
+      () => {},
+    );
+    return run;
   }, []);
+  const autoUploadTimer = useRef<number | null>(null);
+  const autoUpload = useCallback(() => {
+    void queueUpload(async () => {
+      const tok = readSyncToken();
+      if (!tok) return;
+      try {
+        /* A failed cloud read is NOT the same as "no cloud file": the
+           upload below must be skipped, or a local-only merge would
+           overwrite (and permanently delete) the cloud-only likes and
+           deletions on a flaky connection. */
+        const cloud = await fetchCloudPersonal();
+        const merged = mergePersonal(readLocal(), cloud ?? { likes: {}, analysis: {}, deletions: [] });
+        await editLocal(s => { s.likes = merged.likes; s.analysis = merged.analysis; s.deletions = merged.deletions; });
+        await uploadCloudPersonal(tok, merged);
+      } catch {
+        // Silent — the next change or manual sync retries.
+      }
+    });
+  }, [queueUpload]);
   const scheduleAutoUpload = useCallback(() => {
     if (autoUploadTimer.current) window.clearTimeout(autoUploadTimer.current);
     autoUploadTimer.current = window.setTimeout(() => { void autoUpload(); }, 3000);
@@ -2921,8 +2997,8 @@ export function App() {
       : "all";
   });
   /* Filter-row press flash: which pill (filter key, or "sync") the
-     finger is holding down. While held it lights green; on release it
-     fades back to frosted glass + the faint green halo over 0.4s (see
+     finger is holding down. While held it turns dark; on release it
+     fades back to frosted glass + the faint dark halo over 0.4s (see
      .filter-pill in theme.css). Cleared on pointer-up/leave/cancel so
      a press can never stick. */
   const [pressedKey, setPressedKey] = useState<string | null>(null);
@@ -2943,7 +3019,11 @@ export function App() {
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [openId, setOpenId] = useState<string | null>(() => {
     const m = window.location.hash.match(/#item=([^&]+)/);
-    if (m) return decodeURIComponent(m[1] ?? "");
+    /* A malformed hash (e.g. #item=%) used to throw URIError here and
+       white-screen the app on load; fall back to the raw value. */
+    if (m) {
+      try { return decodeURIComponent(m[1] ?? ""); } catch { return m[1] ?? ""; }
+    }
     // No hash: a fresh open — or a host reload that dropped the hash.
     // Restore the detail recorded for this session, if any.
     return sessionStorage.getItem(OPEN_KEY);
@@ -3085,7 +3165,10 @@ export function App() {
   useEffect(() => {
     const onHash = () => {
       const m = window.location.hash.match(/#item=([^&]+)/);
-      const id = m ? decodeURIComponent(m[1] ?? "") : null;
+      let id: string | null = null;
+      if (m) {
+        try { id = decodeURIComponent(m[1] ?? ""); } catch { id = m[1] ?? ""; }
+      }
       setOpenId(id);
       // Keep the session fallback in step with hash navigation.
       if (id) sessionStorage.setItem(OPEN_KEY, id);
@@ -3156,7 +3239,25 @@ export function App() {
     setDeleteConfirm(null);
   }, [deleteConfirm, deleteOneFromList, deleteSelected]);
   const cancelDelete = useCallback(() => setDeleteConfirm(null), []);
-  const saveAnalysis = useCallback((id: string, a: Analysis) => save(s => { s.analysis[id] = a; }), [save]);
+  /* Defensive coercion (audit 2026-11-17): a hand-edited number field
+     must never store NaN — Number(".") is NaN, NaN ?? 0 is still NaN,
+     and NaN serialises to JSON null, which fails the zod schema on the
+     next read and bricks the app. The input itself already ignores
+     non-finite keystrokes; this is the backstop. */
+  const saveAnalysis = useCallback((id: string, a: Analysis) => save(s => {
+    const num = (n: number | null | undefined, fallback: number) =>
+      typeof n === "number" && Number.isFinite(n) ? n : fallback;
+    s.analysis[id] = {
+      ...a,
+      saleLow: a.saleLow == null || !Number.isFinite(a.saleLow) ? null : a.saleLow,
+      saleHigh: a.saleHigh == null || !Number.isFinite(a.saleHigh) ? null : a.saleHigh,
+      sampleCount: Math.max(0, Math.trunc(num(a.sampleCount, 0))),
+      shippingSgd: num(a.shippingSgd, 0),
+      repairSgd: num(a.repairSgd, 0),
+      feePercent: num(a.feePercent, 0),
+      targetProfit: num(a.targetProfit, 0),
+    };
+  }), [save]);
 
   const exportBackup = useCallback(() => {
     const blob = new Blob([exportLocal()], { type: "application/json" });
@@ -3179,6 +3280,15 @@ export function App() {
   const onSaveToken = useCallback((value: string) => {
     const t = value.trim();
     if (!t) { setNotice("请先粘贴令牌。"); return false; }
+    /* A mistyped token otherwise surfaces only later as "Token 无效或
+       权限不足" at sync time. Fine-grained tokens start with
+       github_pat_, classic ones with ghp_ — anything else is almost
+       certainly a paste mistake, so warn but still save it (a future
+       token format should not be hard-blocked). */
+    if (!t.startsWith("github_pat_") && !t.startsWith("ghp_")) {
+      setNotice("这个令牌看起来不太像 GitHub 令牌（应以 github_pat_ 或 ghp_ 开头），请检查是否粘贴错了。");
+      return false;
+    }
     saveSyncToken(t);
     setToken(t);
     setNotice("同步令牌已保存在此浏览器。");
@@ -3189,8 +3299,10 @@ export function App() {
     setToken("");
     setNotice("同步令牌已清除。");
   }, []);
-  /* Two-way sync (manual only — the hourly auto-refresh still downloads
-     listings only and never uploads or merges cloud state):
+  /* Two-way sync: the manual 同步 button, and the auto-upload that
+     also pushes personal state after a like/delete/edit (see
+     queueUpload above). The hourly auto-refresh still downloads
+     listings only and never uploads or merges cloud state:
      1. download the latest listings + rate, as before;
      2. download the cloud personal state (404 = none yet);
      3. merge cloud into local (deletions union — deleted never comes
@@ -3206,35 +3318,48 @@ export function App() {
       const afterCount =
         feedResult.status === "fulfilled" ? (feedResult.value.data?.listings.length ?? beforeCount) : beforeCount;
       const newCount = Math.max(0, afterCount - beforeCount);
-      let cloudNote = "";
-      let cloud: PersonalData | null = null;
-      try {
-        cloud = await fetchCloudPersonal();
-      } catch {
-        cloudNote = "云端数据读取失败，仅使用本机数据；";
-      }
-      const merged = mergePersonal(readLocal(), cloud ?? { likes: {}, analysis: {}, deletions: [] });
-      await editLocal(s => { s.likes = merged.likes; s.analysis = merged.analysis; s.deletions = merged.deletions; });
-      const likeCount = Object.values(merged.likes).filter(Boolean).length;
-      let uploadNote: string;
-      const tok = readSyncToken();
-      if (tok) {
+      /* The cloud section runs through the same upload queue as
+         auto-upload (see queueUpload above), so the two can never
+         merge from the same stale snapshot. A failed cloud read is
+         NOT "no cloud file": the merge still applies locally, but the
+         upload is skipped — uploading a local-only merge here would
+         overwrite the cloud-only likes and deletions. */
+      const { merged, uploadNote, cloudNote } = await queueUpload(async () => {
+        let cloudNote = "";
+        let cloud: PersonalData | null = null;
+        let cloudReadFailed = false;
         try {
-          await uploadCloudPersonal(tok, merged);
-          uploadNote = "云端已更新";
-        } catch (e) {
-          uploadNote = e instanceof Error ? e.message : "云端上传失败";
+          cloud = await fetchCloudPersonal();
+        } catch {
+          cloudNote = "云端数据读取失败，仅使用本机数据；";
+          cloudReadFailed = true;
         }
-      } else {
-        uploadNote = "未设置同步 Token，喜欢只存在本机";
-      }
+        const merged = mergePersonal(readLocal(), cloud ?? { likes: {}, analysis: {}, deletions: [] });
+        await editLocal(s => { s.likes = merged.likes; s.analysis = merged.analysis; s.deletions = merged.deletions; });
+        let uploadNote: string;
+        const tok = readSyncToken();
+        if (!tok) {
+          uploadNote = "未设置同步 Token，喜欢只存在本机";
+        } else if (cloudReadFailed) {
+          uploadNote = "云端读取失败，本次未上传";
+        } else {
+          try {
+            await uploadCloudPersonal(tok, merged);
+            uploadNote = "云端已更新";
+          } catch (e) {
+            uploadNote = e instanceof Error ? e.message : "云端上传失败";
+          }
+        }
+        return { merged, uploadNote, cloudNote };
+      });
+      const likeCount = Object.values(merged.likes).filter(Boolean).length;
       setNotice(`同步完成：新增 ${newCount} 台 · 喜欢 ${likeCount} 个 · 已删 ${merged.deletions.length} 台 · ${cloudNote}${uploadNote}`);
     } catch {
       setNotice("同步失败，请检查网络后重试。");
     } finally {
       setSyncing(false);
     }
-  }, [state, rateQuery, syncing]);
+  }, [state, rateQuery, syncing, queueUpload]);
   const filters: Array<{ key: FilterMode; label: string }> = [
     { key: "all", label: "全部" },
     { key: "xianyu", label: "闲鱼" },
@@ -3432,7 +3557,7 @@ export function App() {
               type="button"
               aria-label="同步最新清单，并将本机喜欢上传到云端"
               title="同步最新清单，并将本机喜欢上传到云端"
-              disabled={syncing || state.isFetching || rateQuery.isFetching}
+              disabled={syncing}
               className={`filter-pill min-w-0 flex-1 rounded-full border px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
                 pressedKey === "sync"
                   ? "glass-dark border-[var(--text)] text-white"
@@ -3451,6 +3576,7 @@ export function App() {
         </div>
 
         {state.isRefetchError && <p role="status" className="mt-2 text-sm">清单更新失败，当前显示上次读取的结果。</p>}
+        {state.data && state.data.skipped > 0 && <p role="status" className="mt-2 text-sm">清单里有 {state.data.skipped} 条异常记录，已跳过。</p>}
         <div className="no-select pt-5">
           {state.isPending ? (
             <p className="py-16 text-center text-base text-[var(--faint)]">加载中</p>

@@ -2,9 +2,9 @@
    multi-select). Kept free of React/DOM so they are unit-testable;
    App.tsx drives the touch handlers off these. */
 
-export const SWIPE_MIN_DX = 10;
-export const SWIPE_RATIO = 1.35;
-export const LONG_PRESS_MOVE = 10;
+const SWIPE_MIN_DX = 10;
+const SWIPE_RATIO = 1.35;
+const LONG_PRESS_MOVE = 10;
 
 /** True once a horizontal drag is clearly a swipe, not a scroll. */
 export function isSwipeIntent(dx: number, dy: number): boolean {

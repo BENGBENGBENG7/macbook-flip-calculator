@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 const key = "macbook-sift:local:v1";
+/* A corrupt stored blob is stashed here (not deleted) so it can still be
+   inspected or restored by hand after readLocal falls back to fresh. */
+const corruptKey = `${key}:corrupt`;
 const tokenKey = "macbook-sift:github-token:v1";
 const changed = "macbook-sift-local-change";
 const knownDeleted = [
@@ -19,9 +22,20 @@ const savedFile = personal.extend({ seen: z.array(id) });
 type Saved = z.infer<typeof savedFile>;
 const fresh = (): Saved => ({ likes: {}, analysis: {}, deletions: [...knownDeleted], seen: [] });
 
+/* Resilient by design (audit 2026-11-17): a corrupt stored blob used to
+   throw during the useState initializer and white-screen the whole app
+   with no recovery except clearing site data. Now a bad blob is stashed
+   under the corrupt key and a fresh state is returned instead, so the
+   app always opens. */
 export function readLocal(): Saved {
   const raw = localStorage.getItem(key);
-  return raw ? savedFile.parse(JSON.parse(raw)) : fresh();
+  if (!raw) return fresh();
+  try {
+    return savedFile.parse(JSON.parse(raw));
+  } catch {
+    try { localStorage.setItem(corruptKey, raw); } catch { /* storage blocked/full */ }
+    return fresh();
+  }
 }
 export function subscribeLocal(listener: () => void) {
   const onStorage = (event: StorageEvent) => { if (!event.key || event.key === key) listener(); };
@@ -47,6 +61,12 @@ export async function editLocal(edit: (state: Saved) => void) {
 export async function rememberFeed(ids: string[]) {
   const next = new Set(ids);
   await editLocal(s => {
+    /* Never prune on an empty or implausibly shrunken feed: a valid-but-
+       empty (or truncated) listings.json would otherwise tombstone every
+       machine the user has ever seen, with no un-delete UI to bring them
+       back. A feed under a tenth of the previous size is treated as a
+       bad read, not a mass delisting. */
+    if (next.size === 0 || next.size * 10 < s.seen.length) return;
     s.deletions = [...new Set([...knownDeleted, ...s.deletions, ...s.seen.filter(old => !next.has(old))])];
     s.seen = [...next];
   });
@@ -93,6 +113,13 @@ export function exportLocal() {
    read+write on this repo only). It lives only in localStorage under
    its own key — never in code, never in any file, never in the repo —
    and is only ever sent to api.github.com for this repo. */
+export function clearLocalData(): void {
+  try {
+    localStorage.removeItem(key);
+    localStorage.removeItem(corruptKey);
+  } catch { /* storage blocked */ }
+}
+
 export function readSyncToken(): string {
   return localStorage.getItem(tokenKey) ?? "";
 }
