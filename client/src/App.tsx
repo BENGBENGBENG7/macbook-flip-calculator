@@ -2973,6 +2973,34 @@ export function App() {
   const rate: number | null =
     rateQuery.data?.rate ?? null;
 
+  /* Home-screen web apps (iOS "Add to Home Screen") resume from a
+     suspended snapshot instead of reloading: the page comes back with
+     the old list, and the focus refetch above does not reliably fire
+     on that resume. So refetch the listings whenever the page is
+     shown again — pageshow covers back-forward-cache restores
+     (event.persisted) and plain resumes, visibilitychange covers tab
+     switches. Silent: the list just updates, no notice. */
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const rateQueryRef = useRef(rateQuery);
+  rateQueryRef.current = rateQuery;
+  useEffect(() => {
+    const refetch = () => {
+      void stateRef.current.refetch();
+      void rateQueryRef.current.refetch();
+    };
+    const onPageShow = () => refetch();
+    const onVisible = () => {
+      if (!document.hidden) refetch();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(SORT_KEY, sort);
   }, [sort]);
