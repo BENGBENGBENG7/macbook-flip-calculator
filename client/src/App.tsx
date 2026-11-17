@@ -455,7 +455,12 @@ function ListRow({
         onClick={() => onOpen(listing)}
       >
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-6 text-[var(--text)]">
+          {/* Row title stays one line: in multi-select the text area
+             narrows for the checkbox, and a wrap to two lines would make
+             the row taller and drag the centred like button down with
+             it. Truncate instead; the detail page still shows the full
+             title. (Single-column cards keep line-clamp-2.) */}
+          <h3 className="min-w-0 flex-1 truncate text-base font-semibold leading-6 text-[var(--text)]">
             {title(listing)}
           </h3>
           <span className="shrink-0 pt-0.5">
@@ -557,9 +562,12 @@ function SelectCheckbox({
 /* ---------- centred delete confirm modal (home list only) ------------
    Replaces the old inline two-step confirm (which rewrote the Delete
    button's own label). Tapping Delete — swipe single or the multi-select
-   toolbar — opens this modal. Confirm (left, solid delete red) deletes;
-   Cancel (right, green frosted glass) or the mask closes without
-   deleting. The detail page keeps its own inline confirm; untouched. */
+   toolbar — opens this modal. Both buttons are transparent frosted
+   glass (.glass) with coloured text only — Confirm in --btn-red,
+   Cancel in --btn-green — no solid fills, so the dialog stays light
+   and calm. The mask is a very light dim (black 15%) with a 2px blur.
+   Cancel or the mask closes without deleting. The detail page keeps
+   its own inline confirm; untouched. */
 type DeleteConfirm =
   | { kind: "single"; listing: Listing }
   | { kind: "bulk"; count: number };
@@ -593,7 +601,7 @@ function DeleteConfirmModal({
     >
       <div
         aria-hidden
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/15 backdrop-blur-[2px]"
         onClick={onCancel}
       />
       <div className="glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] p-5">
@@ -602,8 +610,8 @@ function DeleteConfirmModal({
           <button
             type="button"
             aria-label="确认删除"
-            className="rounded-full px-6 py-3 text-sm font-medium text-white transition-all duration-200 ease-out"
-            style={{ backgroundColor: "var(--verdict-red)" }}
+            className="glass rounded-full border px-6 py-3 text-sm font-medium text-[var(--btn-red)] transition-all duration-200 ease-out"
+            style={{ borderColor: "color-mix(in srgb, var(--btn-red) 35%, transparent)" }}
             onClick={onConfirm}
           >
             确认
@@ -611,7 +619,8 @@ function DeleteConfirmModal({
           <button
             type="button"
             aria-label="取消删除"
-            className="glass-green rounded-full border border-[var(--btn-green)] px-6 py-3 text-sm font-medium text-white transition-all duration-200 ease-out"
+            className="glass rounded-full border px-6 py-3 text-sm font-medium text-[var(--btn-green)] transition-all duration-200 ease-out"
+            style={{ borderColor: "color-mix(in srgb, var(--btn-green) 35%, transparent)" }}
             onClick={onCancel}
           >
             取消
