@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const key = "macbook-sift:local:v1";
+const tokenKey = "macbook-sift:github-token:v1";
 const changed = "macbook-sift-local-change";
 const knownDeleted = [
   "xianyu-1100158609801", "xianyu-1100552885166", "xianyu-1101263928402",
@@ -85,4 +86,52 @@ export async function restoreLocal(text: string) {
 export function exportLocal() {
   const { likes, analysis, deletions } = readLocal();
   return JSON.stringify({ format: "macbook-sift-local-v1", likes, analysis, deletions }, null, 2);
+}
+
+/* ---------- two-way cloud sync (user-data.json) ---------------------------
+   The GitHub token is the user's own fine-grained token (Contents
+   read+write on this repo only). It lives only in localStorage under
+   its own key — never in code, never in any file, never in the repo —
+   and is only ever sent to api.github.com for this repo. */
+export function readSyncToken(): string {
+  return localStorage.getItem(tokenKey) ?? "";
+}
+export function saveSyncToken(token: string): void {
+  localStorage.setItem(tokenKey, token);
+}
+export function clearSyncToken(): void {
+  localStorage.removeItem(tokenKey);
+}
+
+export type PersonalData = z.infer<typeof personal>;
+
+/* Validate downloaded cloud state with the same `personal` schema used
+   for backups: unknown keys (e.g. `format`) are stripped, bad shapes
+   throw instead of silently merging. */
+export function parseCloudPersonal(raw: unknown): PersonalData {
+  return personal.parse(raw);
+}
+
+/* Merge cloud personal state into local state. Pure: no storage access.
+   - deletions: UNION of local + cloud (+ the known seeds). A deletion is
+     never removed by a download — deleted content never comes back.
+   - likes: an explicit local entry wins when present (including `false`,
+     i.e. an explicit unlike); otherwise the cloud value applies.
+   - analysis: per id per field, a local field wins when present;
+     otherwise the cloud field applies.
+   - likes/analysis for a deleted id are dropped.
+   - `seen` is local-only and is never merged (not part of the result). */
+export function mergePersonal(local: Saved, cloud: PersonalData): PersonalData {
+  const deletions = [...new Set([...knownDeleted, ...local.deletions, ...cloud.deletions])];
+  const deleted = new Set(deletions);
+  const likes: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(cloud.likes)) if (!deleted.has(k)) likes[k] = v;
+  for (const [k, v] of Object.entries(local.likes)) if (!deleted.has(k)) likes[k] = v;
+  const mergedAnalysis: Record<string, Partial<z.infer<typeof analysis>>> = {};
+  for (const [k, v] of Object.entries(cloud.analysis)) if (!deleted.has(k)) mergedAnalysis[k] = { ...v };
+  for (const [k, v] of Object.entries(local.analysis)) {
+    if (deleted.has(k)) continue;
+    mergedAnalysis[k] = { ...(mergedAnalysis[k] ?? {}), ...v };
+  }
+  return { likes, analysis: mergedAnalysis, deletions };
 }

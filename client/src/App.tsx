@@ -14,7 +14,19 @@ type TouchEvent as ReactTouchEvent,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
-import { editLocal, exportLocal, readLocal, restoreLocal, subscribeLocal } from "./local";
+import { fetchCloudPersonal, uploadCloudPersonal } from "./cloud";
+import {
+  clearSyncToken,
+  editLocal,
+  exportLocal,
+  mergePersonal,
+  readLocal,
+  readSyncToken,
+  restoreLocal,
+  saveSyncToken,
+  subscribeLocal,
+  type PersonalData,
+} from "./local";
 import {
   clampSwipeOffset,
   isScrollIntent,
@@ -2711,6 +2723,11 @@ const LISTINGS_REFRESH_MS = 60 * 60 * 1000;
 export function App() {
   const [personal, setPersonal] = useState(readLocal);
   const [notice, setNotice] = useState("");
+  /* Two-way cloud sync: the GitHub token lives only in this browser
+     (see local.ts); the input below holds what the user is typing. */
+  const [token, setToken] = useState(() => readSyncToken());
+  const [tokenInput, setTokenInput] = useState("");
+  const [syncing, setSyncing] = useState(false);
   useEffect(() => subscribeLocal(() => setPersonal(readLocal())), []);
   const save = useCallback((edit: Parameters<typeof editLocal>[0]) => {
     void editLocal(edit).catch(() => setNotice("浏览器未能保存改动，请检查此网站的本地存储权限。"));
@@ -2948,6 +2965,65 @@ export function App() {
       setNotice("已在此浏览器恢复喜欢、分析和删除记录。");
     } catch { setNotice("导入失败，请选择完整的 Macbook Sift 备份并检查本地存储权限。"); }
   }, []);
+  const onSaveToken = useCallback(() => {
+    const t = tokenInput.trim();
+    if (!t) { setNotice("请先粘贴令牌。"); return; }
+    saveSyncToken(t);
+    setToken(t);
+    setTokenInput("");
+    setNotice("同步令牌已保存在此浏览器。");
+  }, [tokenInput]);
+  const onClearToken = useCallback(() => {
+    clearSyncToken();
+    setToken("");
+    setNotice("同步令牌已清除。");
+  }, []);
+  /* Two-way sync (manual only — the hourly auto-refresh still downloads
+     listings only and never uploads or merges cloud state):
+     1. download the latest listings + rate, as before;
+     2. download the cloud personal state (404 = none yet);
+     3. merge cloud into local (deletions union — deleted never comes
+        back; explicit local likes/analysis fields win);
+     4. write the merge back locally;
+     5. if a token is set, upload the merged state to user-data.json. */
+  const syncAll = useCallback(async () => {
+    if (syncing) return;
+    setSyncing(true);
+    const beforeCount = state.data?.listings.length ?? 0;
+    try {
+      const [feedResult] = await Promise.allSettled([state.refetch(), rateQuery.refetch()]);
+      const afterCount =
+        feedResult.status === "fulfilled" ? (feedResult.value.data?.listings.length ?? beforeCount) : beforeCount;
+      const newCount = Math.max(0, afterCount - beforeCount);
+      let cloudNote = "";
+      let cloud: PersonalData | null = null;
+      try {
+        cloud = await fetchCloudPersonal();
+      } catch {
+        cloudNote = "云端数据读取失败，仅使用本机数据；";
+      }
+      const merged = mergePersonal(readLocal(), cloud ?? { likes: {}, analysis: {}, deletions: [] });
+      await editLocal(s => { s.likes = merged.likes; s.analysis = merged.analysis; s.deletions = merged.deletions; });
+      const likeCount = Object.values(merged.likes).filter(Boolean).length;
+      let uploadNote: string;
+      const tok = readSyncToken();
+      if (tok) {
+        try {
+          await uploadCloudPersonal(tok, merged);
+          uploadNote = "云端已更新";
+        } catch (e) {
+          uploadNote = e instanceof Error ? e.message : "云端上传失败";
+        }
+      } else {
+        uploadNote = "未设置同步 Token，喜欢只存在本机";
+      }
+      setNotice(`同步完成：新增 ${newCount} 台 · 喜欢 ${likeCount} 个 · 已删 ${merged.deletions.length} 台 · ${cloudNote}${uploadNote}`);
+    } catch {
+      setNotice("同步失败，请检查网络后重试。");
+    } finally {
+      setSyncing(false);
+    }
+  }, [state, rateQuery, syncing]);
   const filters: Array<{ key: FilterMode; label: string }> = [
     { key: "all", label: "全部" },
     { key: "xianyu", label: "闲鱼" },
@@ -3120,13 +3196,13 @@ export function App() {
             </div>
             <button
               type="button"
-              aria-label="同步机器清单和汇率"
-              title="同步机器清单和汇率"
-              disabled={state.isFetching || rateQuery.isFetching}
+              aria-label="同步最新清单，并将本机喜欢上传到云端"
+              title="同步最新清单，并将本机喜欢上传到云端"
+              disabled={syncing || state.isFetching || rateQuery.isFetching}
               className="glass-green min-w-0 flex-1 rounded-full border border-[var(--btn-green)] px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight text-white sm:px-2 sm:text-sm sm:tracking-normal"
-              onClick={() => { void state.refetch(); void rateQuery.refetch(); }}
+              onClick={() => void syncAll()}
             >
-              {state.isFetching || rateQuery.isFetching ? "同步中" : "同步"}
+              {syncing || state.isFetching || rateQuery.isFetching ? "同步中" : "同步"}
             </button>
           </div>
         </div>
@@ -3221,6 +3297,46 @@ export function App() {
             className="hidden"
             onChange={(e) => void importBackup(e)}
           />
+          {/* Cloud sync settings: a GitHub token turns 同步 into two-way
+              sync (likes/analysis/deletions up to user-data.json). The
+              token lives only in this browser; without it, 同步 only
+              downloads the latest listings. */}
+          <div className="mt-2 w-full border-t border-[var(--border)] pt-4">
+            <p className="text-sm font-medium text-[var(--text)]">云端同步设置</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--dim)]">
+              填入 GitHub 令牌后，点“同步”会把本机的喜欢和分析上传到云端；不填令牌只下载最新清单，喜欢只存在本机。令牌只保存在本浏览器，不会发到别处。已删除的内容不会从云端重新出现。
+            </p>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="password"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder={token ? "已设置令牌" : "粘贴 GitHub 令牌"}
+                aria-label="GitHub 同步令牌"
+                autoComplete="off"
+                className="glass min-w-0 flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)]"
+              />
+              <button
+                type="button"
+                aria-label="保存同步令牌"
+                className="glass shrink-0 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)]"
+                onClick={onSaveToken}
+              >
+                保存
+              </button>
+              {token ? (
+                <button
+                  type="button"
+                  aria-label="清除同步令牌"
+                  className="glass shrink-0 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)]"
+                  onClick={onClearToken}
+                >
+                  清除
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-1 text-xs text-[var(--dim)]">{token ? "已设置同步令牌" : "未设置同步令牌"}</p>
+          </div>
         </footer>
       </main>
 
