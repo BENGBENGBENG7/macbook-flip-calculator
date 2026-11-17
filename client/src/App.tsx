@@ -2796,6 +2796,13 @@ export function App() {
     const f = localStorage.getItem(FILTER_KEY);
     return f === "xianyu" || f === "carousell" || f === "liked" ? f : "all";
   });
+  /* Filter-row press flash: which pill (filter key, or "sync") the
+     finger is holding down. While held it lights green; on release it
+     fades back to frosted glass + the faint green halo over 0.4s (see
+     .filter-pill in theme.css). Cleared on pointer-up/leave/cancel so
+     a press can never stick. */
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const clearPressed = useCallback(() => setPressedKey(null), []);
   const [layout, setLayout] = useState<LayoutMode>(() => {
     // Older saved value "double" now means the multi-column row list.
     return localStorage.getItem(LAYOUT_KEY) === "single" ? "single" : "multi";
@@ -3228,11 +3235,18 @@ export function App() {
                   type="button"
                   aria-label={`筛选：${f.label}`}
                   aria-pressed={filter === f.key}
-                  className={`min-w-0 flex-1 overflow-hidden rounded-full border px-0.5 py-2.5 text-center text-[10px] tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
-                    filter === f.key
+                  className={`filter-pill min-w-0 flex-1 overflow-hidden rounded-full border px-0.5 py-2.5 text-center text-[10px] tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
+                    pressedKey === f.key
                       ? "glass-green border-[var(--btn-green)] text-white"
-                      : "glass border-[var(--border)] text-[var(--dim)]"
+                      : filter === f.key
+                        ? "glass filter-pill-active text-[var(--dim)]"
+                        : "glass border-[var(--border)] text-[var(--dim)]"
                   }`}
+                  style={pressedKey === f.key ? { transitionDuration: "90ms" } : undefined}
+                  onPointerDown={() => setPressedKey(f.key)}
+                  onPointerUp={clearPressed}
+                  onPointerLeave={clearPressed}
+                  onPointerCancel={clearPressed}
                   onClick={() => {
                     setFilter(f.key);
                     scrollTop();
@@ -3247,7 +3261,16 @@ export function App() {
               aria-label="同步最新清单，并将本机喜欢上传到云端"
               title="同步最新清单，并将本机喜欢上传到云端"
               disabled={syncing || state.isFetching || rateQuery.isFetching}
-              className="glass-green min-w-0 flex-1 rounded-full border border-[var(--btn-green)] px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight text-white sm:px-2 sm:text-sm sm:tracking-normal"
+              className={`filter-pill min-w-0 flex-1 rounded-full border px-0.5 py-2.5 text-center text-[10px] font-medium tracking-tight sm:px-2 sm:text-sm sm:tracking-normal ${
+                pressedKey === "sync"
+                  ? "glass-green border-[var(--btn-green)] text-white"
+                  : "glass border-[var(--border)] text-[var(--dim)]"
+              }`}
+              style={pressedKey === "sync" ? { transitionDuration: "90ms" } : undefined}
+              onPointerDown={() => setPressedKey("sync")}
+              onPointerUp={clearPressed}
+              onPointerLeave={clearPressed}
+              onPointerCancel={clearPressed}
               onClick={() => void syncAll()}
             >
               {syncing || state.isFetching || rateQuery.isFetching ? "同步中" : "同步"}

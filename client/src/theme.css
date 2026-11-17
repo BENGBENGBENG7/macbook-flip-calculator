@@ -32,16 +32,10 @@
     0 8px 28px rgba(0, 0, 0, 0.1);
 }
 
-/* Green frosted glass in the macOS traffic-light family: the category
-   filters, the sync button and Save. The vivid maximise green is mixed
-   with a deeper green so white labels stay readable on it. Its shadow
-   stack matches .glass layer for layer — top highlight, inset 1px ring,
-   a soft inner shade pooling at the bottom for thickness, and the cast
-   shadow — plus one extra tight contact shadow (0 1px 3px): the old
-   stack's only outer shadow was a 28px-blur wash that all but vanished
-   at phone size, and the sync button (the one .glass-green user with
-   no border of its own) read completely flat. The contact shadow keeps
-   the lift visible at small sizes; only the colour differs from .glass. */
+/* Green frosted glass in the macOS traffic-light family: Save still
+   uses it solid. The category filters and the sync button now use it
+   only as a transient press flash (see .filter-pill below) — at rest
+   they are plain .glass, so nothing in the filter row stays lit. */
 .glass-green {
   background: color-mix(in srgb, var(--btn-green) 82%, #046a1b);
   -webkit-backdrop-filter: blur(24px) saturate(2);
@@ -52,6 +46,31 @@
     inset 0 -14px 22px -16px rgba(0, 0, 0, 0.3),
     0 1px 3px rgba(0, 0, 0, 0.24),
     0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+/* Filter-row pills (filter bar + sync): frosted glass at rest — nothing
+   stays lit. The current view is marked only by a faint green halo
+   around the outer ring (.filter-pill-active). Pressing a pill lights
+   it green (the .glass-green fill, swapped in while pressed); on
+   release the fill fades back to frosted + halo over 0.4s — the
+   press-to-release gradient. The 90ms press duration (set inline
+   while pressed) keeps the light instant; the 0.4s base duration
+   makes the release a visible fade. */
+.filter-pill {
+  transition:
+    background-color 0.4s ease,
+    box-shadow 0.4s ease,
+    color 0.4s ease,
+    border-color 0.4s ease;
+}
+.filter-pill-active {
+  border-color: color-mix(in srgb, var(--btn-green) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 0 0 1px color-mix(in srgb, var(--btn-green) 28%, transparent),
+    0 0 10px color-mix(in srgb, var(--btn-green) 26%, transparent),
+    0 6px 18px color-mix(in srgb, var(--btn-green) 16%, transparent),
+    0 8px 28px rgba(0, 0, 0, 0.1);
 }
 
 /* Red glass in the same family (the close-button red): the active
