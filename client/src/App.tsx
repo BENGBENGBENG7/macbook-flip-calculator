@@ -2747,6 +2747,26 @@ function MenuSelect({
     };
   }, [open, close ]);
 
+  /* While the menu is open the rest of the page is locked: a tap
+     anywhere outside the menu only closes it — it must never reach
+     the listing underneath, which would open its detail page. The
+     mousedown closer above fires first, but the same tap's click
+     would still land on the card, so this capture-phase guard
+     swallows outside clicks before the card's own onClick sees them.
+     Clicks inside the menu (options, trigger) pass through untouched.
+     Animations (menu-in/out) are not touched. */
+  useEffect(() => {
+    if (!open) return;
+    const onClickCapture = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("click", onClickCapture, true);
+    return () => document.removeEventListener("click", onClickCapture, true);
+  }, [open]);
+
   useEffect(
     () => () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
