@@ -3608,7 +3608,7 @@ export function App() {
           (the like-heart red) on glass; tapping it opens the centred
           confirm modal instead of changing its own label. */}
       {multiSelect ? (
-        <div className="ms-bar-in pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 pb-[calc(env(safe-area-inset-bottom)+14px)]">
+        <div className="ms-bar-in no-select pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 pb-[calc(env(safe-area-inset-bottom)+14px)]">
           <span className="glass pointer-events-none rounded-full px-3 py-1 text-xs text-[var(--dim)]">
             已选 {selectedIds.size} 台
           </span>
