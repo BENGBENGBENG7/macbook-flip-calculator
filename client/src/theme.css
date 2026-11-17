@@ -529,6 +529,15 @@ body,
   }
   button {
     -webkit-tap-highlight-color: transparent;
+    /* Long-press on a button must never trigger the iOS copy callout:
+       the rows already carry this (see .no-select and SwipeableItem's
+       track), but the buttons themselves did not, so holding a pill,
+       a dropdown trigger or a like button popped the 复制 menu. Plain
+       text outside buttons (e.g. the detail description) stays
+       selectable on purpose. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
   button:disabled {
     opacity: 0.45;
