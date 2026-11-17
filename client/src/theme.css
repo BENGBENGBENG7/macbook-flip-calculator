@@ -353,9 +353,10 @@ main .glass-red {
   animation: ms-bar-in 200ms ease-out both;
 }
 
-/* Centred notice popup (sync result, backup, token): gently fades +
-   scales in, and the same way out. Short on purpose (~0.2s) — just
-   enough that it never pops in or out abruptly. */
+/* Centred notice popup (sync result, backup, token) — and the delete
+   confirm modal, which reuses the same classes: gently fades + scales
+   in, and the same way out. Short on purpose (~0.2s) — just enough
+   that it never pops in or out abruptly. */
 @keyframes notice-in {
   from {
     opacity: 0;

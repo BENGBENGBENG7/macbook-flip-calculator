@@ -609,13 +609,23 @@ function DeleteConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  /* Same gentle 0.2s fade + scale as the notice popup (notice-in/out
+     in theme.css): the card fades in on open and out on any exit —
+     Confirm, Cancel, mask tap or Escape. The actual action runs after
+     the 180ms exit animation, so the card never vanishes abruptly. */
+  const [leaving, setLeaving] = useState(false);
+  const dismiss = useCallback((fn: () => void) => {
+    if (leaving) return;
+    setLeaving(true);
+    window.setTimeout(fn, 180);
+  }, [leaving]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") dismiss(onCancel);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+  }, [dismiss, onCancel]);
   const message =
     confirm.kind === "single"
       ? "确认删除这台机器？"
@@ -629,10 +639,10 @@ function DeleteConfirmModal({
     >
       <div
         aria-hidden
-        className="absolute inset-0 bg-black/15 backdrop-blur-[2px]"
-        onClick={onCancel}
+        className={`absolute inset-0 bg-black/15 backdrop-blur-[2px] ${leaving ? "notice-backdrop-out" : "lightbox-enter"}`}
+        onClick={() => dismiss(onCancel)}
       />
-      <div className="glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] p-5">
+      <div className={`glass relative w-full max-w-xs rounded-2xl border border-[var(--border)] p-5 ${leaving ? "notice-out" : "notice-in"}`}>
         <p className="text-center text-base font-medium text-[var(--text)]">{message}</p>
         <div className="mt-5 flex items-center justify-center gap-4">
           <button
@@ -640,7 +650,7 @@ function DeleteConfirmModal({
             aria-label="确认删除"
             className="glass rounded-full border px-6 py-3 text-sm font-medium text-[var(--btn-red)] transition-all duration-200 ease-out"
             style={{ borderColor: "color-mix(in srgb, var(--btn-red) 35%, transparent)" }}
-            onClick={onConfirm}
+            onClick={() => dismiss(onConfirm)}
           >
             确认
           </button>
@@ -649,7 +659,7 @@ function DeleteConfirmModal({
             aria-label="取消删除"
             className="glass rounded-full border px-6 py-3 text-sm font-medium text-[var(--btn-green)] transition-all duration-200 ease-out"
             style={{ borderColor: "color-mix(in srgb, var(--btn-green) 35%, transparent)" }}
-            onClick={onCancel}
+            onClick={() => dismiss(onCancel)}
           >
             取消
           </button>
