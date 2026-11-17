@@ -178,16 +178,20 @@
    one frosted-glass panel, like a listing card. It rides the scroll
    path (sticky header), so it carries no backdrop-filter: its 94%
    opaque base keeps scrolling cards from showing through, and the top
-   highlight + shadow stack is what reads as glass — the same language
-   as the old full-bleed bar. No overflow clipping here: the dropdown
-   menus open downward out of this panel and must not be cut. */
+   highlight + border is what reads as glass — the same language as
+   the old full-bleed bar. It carries NO drop shadow: the listing cards
+   are flat (no shadow), and the panel's old 28px shadow used to wash
+   the whole panel-to-first-card gap grey, so that gap read differently
+   from the clean card-to-card gap even though both are 20px.
+   Separation while the bar is stuck comes from the scroll fade under
+   the bar (see App.tsx), not from a shadow. No overflow clipping here:
+   the dropdown menus open downward out of this panel and must not be
+   cut. */
 .glass-panel {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow:
-    inset 0 1px 0 var(--glass-hi),
-    0 8px 28px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 
 /* Scroll economy: backdrop-filter is the most expensive paint a

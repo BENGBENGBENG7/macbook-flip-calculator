@@ -3003,6 +3003,28 @@ export function App() {
      a press can never stick. */
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const clearPressed = useCallback(() => setPressedKey(null), []);
+  /* Stuck control bar: a 1px sentinel sits right above the sticky bar;
+     when it scrolls out of view the bar is stuck to the viewport top.
+     barStuck drives the scroll fade under the bar (see the JSX below):
+     cards dissolve as they slide under the panel instead of being
+     hard-cut by its edge, and the bar's solid background hides card
+     tops in the strip above the panel. The sentinel is net-zero height
+     (-mb-px) so it does not change the title-to-panel gap. */
+  const barSentinelRef = useRef<HTMLDivElement | null>(null);
+  const [barStuck, setBarStuck] = useState(false);
+  useEffect(() => {
+    const el = barSentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry) setBarStuck(!entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const [layout, setLayout] = useState<LayoutMode>(() => {
     // Older saved value "double" now means the multi-column row list.
     return localStorage.getItem(LAYOUT_KEY) === "single" ? "single" : "multi";
@@ -3474,7 +3496,33 @@ export function App() {
           />
         </header>
 
-        <div className="control-bar sticky top-0 z-30 -mx-4 px-4 pb-0 pt-2">
+        {/* Stuck sentinel (see state above): net-zero height, so the
+            title-to-panel gap stays exactly 16px. */}
+        <div ref={barSentinelRef} aria-hidden="true" className="-mb-px h-px" />
+
+        {/* The bar itself is a solid sheet of the page background: when
+            it sticks, the 8px strip above the panel is opaque, so a
+            card's top edge can no longer peek out above the panel
+            while it slides past. At rest this is invisible — it is the
+            same colour as the page behind it. */}
+        <div className="control-bar sticky top-0 z-30 -mx-4 bg-[var(--bg)] px-4 pb-0 pt-2">
+          {/* Scroll fade: a 36px gradient hanging below the bar, opaque
+              page background at the panel's bottom edge fading to
+              transparent. Only visible while the bar is stuck (barStuck);
+              at rest it is opacity-0, so the first card shows fully with
+              its 20px gap. Cards sliding up under the panel dissolve
+              through this fade instead of being hard-cut by the panel's
+              edge — no half-clipped card row or frame shows in the gap.
+              It is the bar's FIRST child so the panel and its dropdown
+              menus (later siblings) always paint above it, and it never
+              takes pointer events. It is a plain opacity gradient, not a
+              backdrop blur: a blur here would re-sample the scrolling
+              list on every frame, the same cost that was removed from
+              the scroll path earlier. */}
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-x-0 top-full h-9 bg-[linear-gradient(to_bottom,var(--bg),transparent)] transition-opacity duration-200 ${barStuck ? "opacity-100" : "opacity-0"}`}
+          />
           <div className="glass-panel px-3 py-3">
           <div className="flex items-stretch gap-2.5">
             <MenuSelect
