@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MacBook Sift · 全新版</title>
+<style>
+/* ============ 设计系统：HeroUI 式的中性系统 + 一个主色 ============ */
+:root{
+  --ink:#0b1220; --ink-2:#334155; --muted:#64748b; --faint:#94a3b8;
+  --bg:#f3f5f7; --card:#ffffff; --line:#e6e9ee; --line-2:#eef1f4;
+  --accent:#4f46e5; --accent-soft:#eef2ff; --accent-ink:#3730a3;
+  --good:#059669; --good-soft:#ecfdf5; --watch:#b45309; --watch-soft:#fffbeb;
+  --bad:#dc2626; --bad-soft:#fef2f2;
+  --r-lg:16px; --r-md:12px; --r-sm:9px;
+  --shadow:0 1px 2px rgba(11,18,32,.05),0 4px 16px -6px rgba(11,18,32,.08);
+  --shadow-lg:0 12px 40px -12px rgba(11,18,32,.25);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scrollbar-gutter:stable}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;border:0;background:none;cursor:pointer;color:inherit}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+::selection{background:#c7d2fe}
+
+/* ============ 整体布局：BoardUI / Watermelon 式仪表盘 ============ */
+.app{display:flex;min-height:100dvh}
+.sidebar{width:248px;flex:0 0 248px;background:var(--card);border-right:1px solid var(--line);position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;padding:18px 14px;gap:4px;z-index:30}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px;border-bottom:1px solid var(--line-2);margin-bottom:12px}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed 55%,#06b6d4);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.5px;box-shadow:0 4px 12px -2px rgba(79,70,229,.5)}
+.brand-name{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.side-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:12px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:var(--r-sm);font-size:14px;font-weight:600;color:var(--ink-2);transition:background .15s,color .15s}
+.nav-item:hover{background:#f1f5f9}
+.nav-item.active{background:var(--accent-soft);color:var(--accent-ink)}
+.nav-item .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.55;flex:0 0 8px}
+.nav-item .count{margin-left:auto;font-size:12px;font-weight:700;background:#f1f5f9;color:var(--muted);border-radius:99px;padding:1px 8px}
+.nav-item.active .count{background:#fff;color:var(--accent-ink)}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;padding:2px 10px}
+.chip{padding:5px 10px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;color:var(--ink-2);transition:all .15s}
+.chip:hover{border-color:#c7d2fe}
+.chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.side-foot{margin-top:auto;padding:12px 10px 2px;border-top:1px solid var(--line-2);font-size:11.5px;color:var(--faint);line-height:1.6}
+.side-foot b{color:var(--muted)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(243,245,247,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;gap:14px}
+.topbar h1{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.topbar .crumb{color:var(--muted);font-weight:600;font-size:13px}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:99px;padding:7px 12px;width:min(320px,42vw)}
+.search input{border:0;outline:0;background:none;font:inherit;font-size:13.5px;width:100%;color:var(--ink)}
+.search input::placeholder{color:var(--faint)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;font-size:13.5px;font-weight:700;border:1px solid var(--line);background:#fff;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:#c7d2fe;box-shadow:var(--shadow)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary:hover{background:#1e293b}
+.btn .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:none}
+.btn.loading .spin{display:block}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ============ KPI 条：beUI 式渐变光晕 + HeroUI 式卡片 ============ */
+.hero{margin:22px 28px 0;border-radius:20px;padding:22px 24px 20px;color:#fff;background:
+  radial-gradient(120% 160% at 8% 0%,rgba(124,58,237,.55) 0%,transparent 55%),
+  radial-gradient(100% 140% at 92% 10%,rgba(6,182,212,.45) 0%,transparent 50%),
+  linear-gradient(120deg,#17123a,#1e1b4b 55%,#0f2a43);
+  position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(60% 90% at 50% 120%,rgba(79,70,229,.35),transparent 70%);pointer-events:none}
+.hero h2{font-size:21px;font-weight:800;letter-spacing:-.4px;position:relative;z-index:1}
+.hero p{font-size:13px;color:rgba(255,255,255,.72);margin-top:4px;position:relative;z-index:1}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px;position:relative;z-index:1}
+.kpi{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 14px;backdrop-filter:blur(6px)}
+.kpi .k-label{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.kpi .k-val{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .k-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:1px}
+
+/* ============ 工具条 ============ */
+.toolbar{margin:18px 28px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:flex;background:#fff;border:1px solid var(--line);border-radius:99px;padding:3px;gap:2px}
+.seg button{padding:6px 13px;border-radius:99px;font-size:13px;font-weight:700;color:var(--muted);transition:all .15s}
+.seg button.active{background:var(--ink);color:#fff}
+.toolbar .spacer{flex:1}
+.select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid var(--line);border-radius:99px;padding:8px 30px 8px 14px;font:inherit;font-size:13px;font-weight:700;color:var(--ink-2);cursor:pointer}
+.result-note{margin:12px 28px 0;font-size:12.5px;color:var(--muted)}
+.result-note b{color:var(--ink)}
+
+/* ============ 卡片网格 ============ */
+.grid{margin:14px 28px 40px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;position:relative}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:#dbe1e8}
+.card .thumb{position:relative;aspect-ratio:4/3;background:#e8ecf0;overflow:hidden}
+.card .thumb img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+.card:hover .thumb img{transform:scale(1.04)}
+.card .thumb .plat{position:absolute;left:10px;top:10px;font-size:11.5px;font-weight:800;letter-spacing:.02em;background:rgba(11,18,32,.78);color:#fff;border-radius:99px;padding:4px 10px;backdrop-filter:blur(4px)}
+.card .thumb .like{position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:transform .15s}
+.card .thumb .like:active{transform:scale(.82)}
+.card .thumb .like svg{width:18px;height:18px;fill:none;stroke:#dc2626;stroke-width:2;transition:fill .15s}
+.card .thumb .like.on svg{fill:#dc2626}
+.card .thumb .like.pop svg{animation:pop .35s ease}
+@keyframes pop{40%{transform:scale(1.35)}}
+.card-body{padding:14px 15px 15px}
+.card-title{font-size:15px;font-weight:800;letter-spacing:-.2px;line-height:1.35}
+.card-meta{font-size:12.5px;color:var(--muted);margin-top:3px}
+.card-specs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.spec{font-size:11.5px;font-weight:700;color:var(--ink-2);background:#f1f5f9;border-radius:6px;padding:3px 8px}
+.spec.warn{color:#92400e;background:#fef3c7}
+.card-foot{display:flex;align-items:flex-end;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-2)}
+.price{font-size:20px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.price small{font-size:12px;font-weight:700;color:var(--muted);display:block;letter-spacing:0}
+.badge{font-size:12px;font-weight:800;border-radius:99px;padding:5px 11px;white-space:nowrap}
+.badge.buy{background:var(--good-soft);color:var(--good)}
+.badge.watch{background:var(--watch-soft);color:var(--watch)}
+.profit{font-size:12.5px;font-weight:700;margin-top:2px;text-align:right}
+.profit.pos{color:var(--good)} .profit.neg{color:var(--bad)}
+/* Libraries 式边框流光：只给可买卡片描一条流动的光 */
+.card.buy-beam::before{content:"";position:absolute;inset:0;border-radius:var(--r-lg);padding:1.5px;
+  background:conic-gradient(from var(--a,0deg),transparent 0 70%,#34d399 82%,#22d3ee 90%,transparent 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  animation:beam 3.2s linear infinite;pointer-events:none;z-index:2}
+@property --a{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes beam{to{--a:360deg}}
+@media (prefers-reduced-motion:reduce){.card.buy-beam::before{animation:none}}
+
+/* ============ 空态 / 加载 ============ */
+.empty{margin:14px 28px 40px;background:#fff;border:1.5px dashed #dbe1e8;border-radius:var(--r-lg);padding:56px 20px;text-align:center}
+.empty .glyph{font-size:34px;margin-bottom:10px}
+.empty h3{font-size:16px;font-weight:800}
+.empty p{color:var(--muted);font-size:13.5px;margin-top:5px}
+.loading-wrap{margin:60px 28px;text-align:center;color:var(--muted);font-size:13.5px}
+.orbs{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.orbs i{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,#818cf8,#22d3ee);animation:orb 1.1s ease-in-out infinite}
+.orbs i:nth-child(2){animation-delay:.18s}.orbs i:nth-child(3){animation-delay:.36s}
+@keyframes orb{0%,100%{transform:translateY(0) scale(1);opacity:.55}50%{transform:translateY(-9px) scale(1.15);opacity:1}}
+
+/* ============ 详情抽屉 ============ */
+.scrim{position:fixed;inset:0;background:rgba(11,18,32,.5);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--bg);z-index:51;transform:translateX(102%);transition:transform .32s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;box-shadow:-16px 0 48px rgba(11,18,32,.22)}
+.sheet.open{transform:translateX(0)}
+.sheet-head{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.sheet-head .x{width:34px;height:34px;border-radius:50%;background:#f1f5f9;display:grid;place-items:center;font-size:17px;font-weight:700;color:var(--ink-2)}
+.sheet-head .t{font-size:14.5px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.gallery{position:relative;background:#0b1220}
+.gallery-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.gallery-track::-webkit-scrollbar{display:none}
+.gallery-track .g-item{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:4/3;display:grid;place-items:center;overflow:hidden}
+.gallery-track img{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
+.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:700;border-radius:99px;padding:4px 10px}
+.gallery-dots{position:absolute;left:0;right:0;bottom:12px;display:flex;gap:5px;justify-content:center;pointer-events:none}
+.gallery-dots i{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.45);transition:all .2s}
+.gallery-dots i.on{width:18px;background:#fff}
+.sheet-sec{background:#fff;border-bottom:1px solid var(--line);padding:18px}
+.sheet-sec h3{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.kv div b{display:block;font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:1px}
+.kv div span{font-size:14px;font-weight:700}
+.profit-box{background:var(--ink);color:#fff;border-radius:var(--r-md);padding:15px 16px}
+.profit-box .row{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0;color:rgba(255,255,255,.75)}
+.profit-box .row b{color:#fff;font-variant-numeric:tabular-nums}
+.profit-box .total{border-top:1px solid rgba(255,255,255,.16);margin-top:8px;padding-top:10px;font-size:15px}
+.profit-box .total b{font-size:19px}
+.profit-box .total b.pos{color:#34d399}.profit-box .total b.neg{color:#f87171}
+.desc{font-size:13.5px;line-height:1.75;color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
+.source{font-size:12.5px;color:var(--muted);line-height:1.7}
+.sheet-actions{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px}
+.sheet-actions .btn{flex:1;justify-content:center;padding:12px}
+.slide-del{position:relative;flex:1;height:46px;border-radius:99px;background:#fef2f2;border:1px solid #fecaca;overflow:hidden;user-select:none;touch-action:none}
+.slide-del .fill{position:absolute;inset:0;background:#dc2626;width:0%}
+.slide-del .label{position:absolute;inset:0;display:grid;place-items:center;font-size:13.5px;font-weight:800;color:#b91c1c;pointer-events:none}
+.slide-del .thumb{position:absolute;left:3px;top:3px;width:40px;height:40px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2);display:grid;place-items:center;font-size:16px;color:#dc2626;z-index:2}
+.slide-del.done .label{color:#fff}
+/* 原图查看器 */
+.viewer{position:fixed;inset:0;background:rgba(5,8,15,.96);z-index:80;display:none;place-items:center;overflow:hidden}
+.viewer.open{display:grid}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .25s ease;touch-action:none;user-select:none}
+.viewer .v-close{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:19px;display:grid;place-items:center;z-index:2}
+.viewer .v-count{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);color:rgba(255,255,255,.85);font-size:13px;font-weight:700;background:rgba(0,0,0,.4);padding:5px 12px;border-radius:99px}
+.viewer .v-hint{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;color:rgba(255,255,255,.6);font-size:12px}
+/* Toast */
+.toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:#fff;font-size:13.5px;font-weight:700;border-radius:99px;padding:11px 20px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .3s;z-index:90;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+/* 移动端筛选条 */
+.m-filter{display:none}
+/* ============ 响应式 ============ */
+@media (max-width:900px){
+  .sidebar{display:none}
+  .topbar{padding:12px 16px;flex-wrap:wrap;gap:10px}
+  .search{width:100%;order:3;margin-left:0}
+  .hero{margin:14px 14px 0;padding:18px 16px;border-radius:16px}
+  .hero h2{font-size:18px}
+  .kpis{grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+  .kpi .k-val{font-size:19px}
+  .toolbar{margin:14px 14px 0}
+  .result-note{margin:10px 14px 0}
+  .grid{margin:12px 14px 32px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+  .card-body{padding:10px 11px 12px}
+  .card-title{font-size:13.5px}
+  .card-meta{font-size:11.5px}
+  .price{font-size:17px}
+  .price small{font-size:11px}
+  .spec{font-size:10.5px;padding:2px 6px}
+  .m-filter{display:flex;gap:8px;overflow-x:auto;padding:12px 14px 0;scrollbar-width:none}
+  .m-filter::-webkit-scrollbar{display:none}
+  .m-filter .chip{flex:0 0 auto}
+  .empty{margin:12px 14px 32px}
+  .loading-wrap{margin:48px 14px}
+}
+@media (min-width:901px) and (max-width:1200px){.grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div><div class="brand-name">MacBook Sift</div><div class="brand-sub">全新版 · 数据仪表盘</div></div>
+    </div>
+    <div class="side-label">平台</div>
+    <button class="nav-item active" data-plat="all"><span class="dot"></span>全部平台<span class="count" id="c-all">–</span></button>
+    <button class="nav-item" data-plat="xianyu"><span class="dot"></span>闲鱼<span class="count" id="c-xianyu">–</span></button>
+    <button class="nav-item" data-plat="carousell"><span class="dot"></span>Carousell<span class="count" id="c-carousell">–</span></button>
+    <button class="nav-item" data-plat="liked"><span class="dot"></span>我的喜欢<span class="count" id="c-liked">–</span></button>
+    <div class="side-label">芯片</div>
+    <div class="chip-row" id="chipRow"></div>
+    <div class="side-label">排序</div>
+    <div class="chip-row" id="sortRow"></div>
+    <div class="side-foot">数据实时拉取自仓库 listings.json。<br><b>预览版：</b>喜欢 / 删除只保存在本机浏览器，GitHub 双向同步在正式替换时接回。</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h1>选机仪表盘</h1><span class="crumb" id="crumb">全部平台</span>
+      <div class="search"><span>🔍</span><input id="q" type="search" placeholder="搜型号、卖家、配置…" autocomplete="off"></div>
+      <button class="btn primary" id="syncBtn"><span class="spin"></span><span id="syncLabel">同步最新</span></button>
+    </header>
+
+    <div class="m-filter" id="mFilter"></div>
+
+    <section class="hero">
+      <h2>今天值得看的，都在这里。</h2>
+      <p>按成交价算利润，不按挂牌价心动。每一台都标了到手成本和转卖区间。</p>
+      <div class="kpis">
+        <div class="kpi"><div class="k-label">在售</div><div class="k-val" id="kTotal">–</div><div class="k-sub" id="kTotalSub">台机器</div></div>
+        <div class="kpi"><div class="k-label">可买</div><div class="k-val" id="kBuy">–</div><div class="k-sub">利润达到目标</div></div>
+        <div class="kpi"><div class="k-label">最高利润</div><div class="k-val" id="kBest">–</div><div class="k-sub" id="kBestSub">–</div></div>
+        <div class="kpi"><div class="k-label">中位挂牌价</div><div class="k-val" id="kMed">–</div><div class="k-sub">新币</div></div>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <div class="seg" id="platSeg">
+        <button data-plat="all" class="active">全部</button>
+        <button data-plat="xianyu">闲鱼</button>
+        <button data-plat="carousell">Carousell</button>
+        <button data-plat="liked">❤ 喜欢</button>
+      </div>
+      <div class="spacer"></div>
+      <select class="select" id="sortSel">
+        <option value="new">最新上架</option>
+        <option value="profit">利润最高</option>
+        <option value="priceAsc">价格最低</option>
+        <option value="priceDesc">价格最高</option>
+      </select>
+    </div>
+    <div class="result-note" id="resultNote"></div>
+
+    <div class="loading-wrap" id="loading"><div class="orbs"><i></i><i></i><i></i></div>正在拉取最新 listings…</div>
+    <div class="grid" id="grid" hidden></div>
+    <div class="empty" id="empty" hidden>
+      <div class="glyph">🫥</div>
+      <h3>这个筛选下没有机器</h3>
+      <p>换个芯片或平台试试，或者点右上角同步最新。</p>
+    </div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-hidden="true">
+  <div class="sheet-head"><button class="x" id="sheetClose">✕</button><span class="t" id="sheetTitle"></span><span class="badge buy" id="sheetBadge" hidden></span></div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-actions">
+    <a class="btn primary" id="sheetOpen" target="_blank" rel="noopener">打开原帖 ↗</a>
+    <button class="btn" id="sheetLike">🤍 喜欢</button>
+    <div class="slide-del" id="slideDel"><div class="fill"></div><div class="thumb">→</div><div class="label">右滑删除这台</div></div>
+  </div>
+</aside>
+
+<div class="viewer" id="viewer">
+  <div class="v-hint">双击放大 · 左右滑换图 · 下滑关闭</div>
+  <button class="v-close" id="viewerClose">✕</button>
+  <img id="viewerImg" alt="">
+  <div class="v-count" id="viewerCount"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============ 数据层 ============ */
+const RAW = "https://raw.githubusercontent.com/BENGBENGBENG7/macbook-flip-calculator/main/";
+const FALLBACK_RATE = 0.1933; // 1 CNY ≈ S$0.1933（约 5.17）
+const XY_FEE_CNY = 204; // 闲鱼验货宝 ¥54 + 运费 ¥150
+let listings = [], rate = FALLBACK_RATE, rateOk = false;
+let liked = new Set(JSON.parse(localStorage.getItem("sift2:liked") || "[]"));
+let deleted = new Set(JSON.parse(localStorage.getItem("sift2:deleted") || "[]"));
+const state = { plat: "all", gen: "全部", sort: "new", q: "" };
+const $ = s => document.querySelector(s);
+const fmtS = n => "S$" + Math.round(n).toLocaleString("en-SG");
+const fmtY = n => "¥" + Math.round(n).toLocaleString("en-US");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sgdOf = e => e.priceCny * rate;
+const landedOf = e => (e.priceCny + (e.platform === "xianyu" ? XY_FEE_CNY : 0)) * rate + (e.shippingSgd || 0) + (e.repairSgd || 0);
+const profitOf = e => (e.saleHigh || 0) - landedOf(e);
+const verdictOf = e => profitOf(e) >= (e.targetProfit || 0) ? "buy" : "watch";
+const genOf = chip => (chip || "").replace(/^(M\d).*/, "$1"); // M3 Pro -> M3
+const timeAgo = ts => { const d = Date.now() - ts, h = d / 36e5; if (h < 1) return Math.max(1, Math.round(d / 6e4)) + " 分钟前"; if (h < 24) return Math.round(h) + " 小时前"; if (h < 24 * 30) return Math.round(h / 24) + " 天前"; return new Date(ts).toLocaleDateString("zh-CN"); };
+
+async function fetchRate() {
+  try {
+    const r = await fetch("https://api.frankfurter.dev/v1/latest?base=CNY&symbols=SGD");
+    const j = await r.json();
+    if (j && j.rates && j.rates.SGD) { rate = j.rates.SGD; rateOk = true; }
+  } catch (_) { /* 用 fallback，不显示汇率 */ }
+}
+async function fetchListings() {
+  const r = await fetch(RAW + "listings.json?_=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error("listings 拉取失败 " + r.status);
+  const j = await r.json();
+  listings = (Array.isArray(j) ? j : j.listings || []).filter(e => e && e.id && !deleted.has(e.id));
+}
+async function loadAll(silent) {
+  if (!silent) { $("#loading").hidden = false; $("#grid").hidden = true; $("#empty").hidden = true; }
+  try {
+    await Promise.all([fetchRate(), fetchListings()]);
+    renderAll();
+  } catch (e) {
+    $("#loading").innerHTML = '<div class="glyph" style="font-size:30px">📡</div><h3 style="color:var(--ink);font-size:16px">数据拉取失败</h3><p style="margin-top:6px">网络或仓库暂时不可用，点右上角“同步最新”重试。</p>';
+  } finally { if (!silent) $("#loading").hidden = true; }
+}
+async function galleryOf(e) {
+  if (Array.isArray(e.images) && e.images.length) return e.images;
+  try {
+    const r = await fetch(RAW + "images/" + encodeURIComponent(e.id) + ".json?_=" + Date.now());
+    if (r.ok) { const j = await r.json(); if (Array.isArray(j.images) && j.images.length) return j.images; }
+  } catch (_) {}
+  return e.image ? [e.image] : [];
+}
+
+/* ============ 渲染 ============ */
+const GENS = ["全部", "M1", "M2", "M3", "M4", "M5"];
+const SORTS = [["new", "最新上架"], ["profit", "利润最高"], ["priceAsc", "价格最低"], ["priceDesc", "价格最高"]];
+function buildFilters() {
+  $("#chipRow").innerHTML = GENS.map(g => `<button class="chip${g === state.gen ? " active" : ""}" data-gen="${g}">${g === "全部" ? "全部芯片" : g + " 芯片"}</button>`).join("");
+  $("#sortRow").innerHTML = SORTS.map(([v, l]) => `<button class="chip${v === state.sort ? " active" : ""}" data-sort="${v}">${l}</button>`).join("");
+  $("#mFilter").innerHTML = GENS.map(g => `<button class="chip${g === state.gen ? " active" : ""}" data-gen="${g}">${g === "全部" ? "全部芯片" : g + " 芯片"}</button>`).join("");
+}
+function filtered() {
+  let list = listings.filter(e => !deleted.has(e.id));
+  if (state.plat === "liked") list = list.filter(e => liked.has(e.id));
+  else if (state.plat !== "all") list = list.filter(e => e.platform === state.plat);
+  if (state.gen !== "全部") list = list.filter(e => genOf(e.chip) === state.gen);
+  if (state.q) { const q = state.q.toLowerCase(); list = list.filter(e => (e.chip + e.size + e.memory + e.storage + e.seller + e.description).toLowerCase().includes(q)); }
+  const s = state.sort;
+  list.sort((a, b) => s === "profit" ? profitOf(b) - profitOf(a) : s === "priceAsc" ? sgdOf(a) - sgdOf(b) : s === "priceDesc" ? sgdOf(b) - sgdOf(a) : (b.createdAt || 0) - (a.createdAt || 0));
+  return list;
+}
+function cardHTML(e) {
+  const p = profitOf(e), v = verdictOf(e), sgd = sgdOf(e);
+  const specs = [e.size, e.chip, e.memory + "/" + e.storage, e.battery ? "电池 " + e.battery : "", e.cycles ? "循环 " + e.cycles : ""].filter(Boolean);
+  const lowBat = e.battery && parseInt(e.battery) < 90;
+  return `<article class="card${v === "buy" ? " buy-beam" : ""}" data-id="${esc(e.id)}">
+    <div class="thumb">
+      <img src="${esc(e.image || "")}" alt="${esc(e.chip)}" loading="lazy" onerror="this.style.opacity=.25">
+      <span class="plat">${e.platform === "xianyu" ? "闲鱼" : "Carousell"}</span>
+      <button class="like${liked.has(e.id) ? " on" : ""}" data-like="${esc(e.id)}" aria-label="喜欢"><svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9C1 8.5 3 5 6.5 5c2 0 3.5 1 4.5 2.5l1 1.2 1-1.2C14 6 15.5 5 17.5 5 21 5 23 8.5 21.5 12c-2 4.4-9.5 9-9.5 9z"/></svg></button>
+    </div>
+    <div class="card-body">
+      <div class="card-title">${esc(e.size)} ${esc(e.chip)} ${esc(e.memory)}/${esc(e.storage)}</div>
+      <div class="card-meta">${esc(e.seller || "")} · ${esc(e.condition || "")} · ${timeAgo(e.createdAt || Date.now())}</div>
+      <div class="card-specs">${specs.map(s => `<span class="spec${lowBat && s.startsWith("电池") ? " warn" : ""}">${esc(s)}</span>`).join("")}</div>
+      <div class="card-foot">
+        <div class="price">${fmtS(sgd)}<small>≈ ${fmtY(e.priceCny)} · 转卖 ${fmtS(e.saleLow || 0)}–${fmtS(e.saleHigh || 0)}</small></div>
+        <div><span class="badge ${v === "buy" ? "buy" : "watch"}">${v === "buy" ? "可买" : "观望"}</span>
+        <div class="profit ${p >= 0 ? "pos" : "neg"}">${p >= 0 ? "+" : "−"}${fmtS(Math.abs(p))} 利润</div></div>
+      </div>
+    </div>
+  </article>`;
+}
+function renderAll() {
+  buildFilters();
+  const list = filtered();
+  const buyCount = listings.filter(e => !deleted.has(e.id) && verdictOf(e) === "buy").length;
+  const prices = listings.filter(e => !deleted.has(e.id)).map(sgdOf).sort((a, b) => a - b);
+  const best = listings.filter(e => !deleted.has(e.id)).reduce((m, e) => profitOf(e) > profitOf(m) ? e : m, listings[0]);
+  $("#c-all").textContent = listings.filter(e => !deleted.has(e.id)).length;
+  $("#c-xianyu").textContent = listings.filter(e => !deleted.has(e.id) && e.platform === "xianyu").length;
+  $("#c-carousell").textContent = listings.filter(e => !deleted.has(e.id) && e.platform === "carousell").length;
+  $("#c-liked").textContent = liked.size;
+  $("#kTotal").textContent = listings.filter(e => !deleted.has(e.id)).length;
+  $("#kTotalSub").textContent = "台机器 · 闲鱼 " + listings.filter(e => e.platform === "xianyu" && !deleted.has(e.id)).length + " · Carousell " + listings.filter(e => e.platform === "carousell" && !deleted.has(e.id)).length;
+  $("#kBuy").textContent = buyCount;
+  $("#kBest").textContent = best ? (profitOf(best) >= 0 ? "+" : "−") + fmtS(Math.abs(profitOf(best))) : "–";
+  $("#kBestSub").textContent = best ? best.size + " " + best.chip : "–";
+  $("#kMed").textContent = prices.length ? fmtS(prices[Math.floor(prices.length / 2)]) : "–";
+  const platName = { all: "全部平台", xianyu: "闲鱼", carousell: "Carousell", liked: "我的喜欢" }[state.plat];
+  $("#crumb").textContent = platName + (state.gen !== "全部" ? " · " + state.gen + " 芯片" : "");
+  $("#resultNote").innerHTML = `共 <b>${list.length}</b> 台${state.q ? ` · 搜索“${esc(state.q)}”` : ""}${state.plat === "liked" ? " · 只看喜欢的" : ""}`;
+  const grid = $("#grid");
+  grid.innerHTML = list.map(cardHTML).join("");
+  grid.hidden = !list.length;
+  $("#empty").hidden = !!list.length;
+  $("#loading").hidden = true;
+}
+
+/* ============ 详情抽屉 ============ */
+let cur = null, curImgs = [], curIdx = 0;
+async function openDetail(id) {
+  const e = listings.find(x => x.id === id);
+  if (!e) return;
+  cur = e; curIdx = 0;
+  $("#sheetTitle").textContent = e.size + " " + e.chip + " " + e.memory + "/" + e.storage;
+  const p = profitOf(e), v = verdictOf(e), sgd = sgdOf(e), landed = landedOf(e);
+  const badge = $("#sheetBadge");
+  badge.hidden = false; badge.className = "badge " + (v === "buy" ? "buy" : "watch"); badge.textContent = v === "buy" ? "可买" : "观望";
+  $("#sheetOpen").href = e.url;
+  const likeBtn = $("#sheetLike");
+  likeBtn.textContent = liked.has(e.id) ? "❤️ 已喜欢" : "🤍 喜欢";
+  resetSlideDel();
+  $("#sheetBody").innerHTML = `<div class="gallery"><div class="gallery-track" id="gTrack"><div class="g-item"><div class="orbs"><i></i><i></i><i></i></div></div></div><div class="gallery-count" id="gCount">加载图片…</div><div class="gallery-dots" id="gDots"></div></div>
+  <div class="sheet-sec"><h3>到手与转卖</h3>
+    <div class="profit-box">
+      <div class="row"><span>挂牌价</span><b>${fmtS(sgd)} ≈ ${fmtY(e.priceCny)}</b></div>
+      <div class="row"><span>到手成本${e.platform === "xianyu" ? "（含 ¥204 验货宝+运费）" : ""}</span><b>${fmtS(landed)}</b></div>
+      <div class="row"><span>转卖区间</span><b>${fmtS(e.saleLow || 0)} – ${fmtS(e.saleHigh || 0)}</b></div>
+      <div class="row total"><span>最好情况利润</span><b class="${p >= 0 ? "pos" : "neg"}">${p >= 0 ? "+" : "−"}${fmtS(Math.abs(p))}</b></div>
+    </div>
+    <div class="kv" style="margin-top:14px">
+      <div><b>卖家</b><span>${esc(e.seller || "—")}</span></div>
+      <div><b>平台</b><span>${e.platform === "xianyu" ? "闲鱼" : "Carousell"}</span></div>
+      <div><b>电池健康度</b><span>${esc(e.battery || "未注明")}</span></div>
+      <div><b>循环次数</b><span>${esc(e.cycles ?? "未注明")}</span></div>
+      <div><b>成色</b><span>${esc(e.condition || "—")}</span></div>
+      <div><b>保修</b><span>${esc(e.warranty || "未注明")}</span></div>
+    </div>
+  </div>
+  <div class="sheet-sec"><h3>卖家描述</h3><div class="desc">${esc(e.description || "—")}</div></div>
+  <div class="sheet-sec"><h3>成交证据</h3><div class="source">${esc(e.soldSource || "暂无成交价记录")}（${e.sampleCount || 0} 笔成交价）</div></div>`;
+  $("#scrim").classList.add("open");
+  $("#sheet").classList.add("open");
+  $("#sheet").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  curImgs = await galleryOf(e);
+  const track = $("#gTrack");
+  track.innerHTML = curImgs.map((src, i) => `<div class="g-item"><img src="${esc(src)}" alt="照片 ${i + 1}" data-i="${i}" onerror="this.style.opacity=.2"></div>`).join("") || '<div class="g-item" style="color:#94a3b8">暂无照片</div>';
+  $("#gDots").innerHTML = curImgs.map((_, i) => `<i class="${i === 0 ? "on" : ""}"></i>`).join("");
+  updateGCount();
+  track.onscroll = () => {
+    const i = Math.round(track.scrollLeft / track.clientWidth);
+    if (i !== curIdx) { curIdx = i; updateGCount(); document.querySelectorAll("#gDots i").forEach((d, j) => d.classList.toggle("on", j === i)); }
+  };
+  track.querySelectorAll("img").forEach(img => img.addEventListener("click", () => openViewer(+img.dataset.i)));
+}
+function updateGCount() { const c = $("#gCount"); if (c) c.textContent = curImgs.length ? (curIdx + 1) + " / " + curImgs.length : "暂无照片"; }
+function closeDetail() {
+  $("#scrim").classList.remove("open");
+  $("#sheet").classList.remove("open");
+  $("#sheet").setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+  cur = null;
+}
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2600); }
+function saveLocal() {
+  localStorage.setItem("sift2:liked", JSON.stringify([...liked]));
+  localStorage.setItem("sift2:deleted", JSON.stringify([...deleted]));
+}
+function toggleLike(id, btn) {
+  if (liked.has(id)) { liked.delete(id); toast("已取消喜欢"); }
+  else { liked.add(id); toast("已加入喜欢"); if (btn) { btn.classList.add("pop"); setTimeout(() => btn.classList.remove("pop"), 400); } }
+  saveLocal(); renderAll();
+  if (cur && cur.id === id) $("#sheetLike").textContent = liked.has(id) ? "❤️ 已喜欢" : "🤍 喜欢";
+}
+
+/* ============ 原图查看器 ============ */
+let vScale = 1, vStartX = 0, vStartY = 0, vMoved = 0;
+function openViewer(i) {
+  curIdx = i; vScale = 1;
+  const img = $("#viewerImg");
+  img.src = curImgs[i]; img.style.transform = "";
+  $("#viewerCount").textContent = (i + 1) + " / " + curImgs.length;
+  $("#viewer").classList.add("open");
+}
+function closeViewer() { $("#viewer").classList.remove("open"); }
+
+/* ============ 滑动删除 ============ */
+let slide = null;
+function resetSlideDel() {
+  const d = $("#slideDel");
+  d.classList.remove("done");
+  d.querySelector(".fill").style.width = "0%";
+  d.querySelector(".thumb").style.transform = "translateX(0)";
+  d.querySelector(".label").textContent = "右滑删除这台";
+}
+function initSlideDel() {
+  const d = $("#slideDel"), thumb = d.querySelector(".thumb"), fill = d.querySelector(".fill"), label = d.querySelector(".label");
+  const max = () => d.clientWidth - thumb.clientWidth - 6;
+  thumb.addEventListener("pointerdown", ev => { slide = { x0: ev.clientX, dx: 0 }; thumb.setPointerCapture(ev.pointerId); });
+  thumb.addEventListener("pointermove", ev => {
+    if (!slide) return;
+    slide.dx = Math.max(0, Math.min(max(), ev.clientX - slide.x0));
+    thumb.style.transform = `translateX(${slide.dx}px)`;
+    fill.style.width = (slide.dx / max() * 100) + "%";
+  });
+  thumb.addEventListener("pointerup", () => {
+    if (!slide) return;
+    if (slide.dx >= max() * 0.92 && cur) {
+      d.classList.add("done"); label.textContent = "已删除";
+      deleted.add(cur.id); saveLocal();
+      const id = cur.id;
+      closeDetail();
+      listings = listings.filter(e => e.id !== id);
+      renderAll(); toast("已删除（仅保存在本机预览版）");
+    } else { thumb.style.transform = "translateX(0)"; fill.style.width = "0%"; }
+    slide = null;
+  });
+}
+
+/* ============ 事件绑定 ============ */
+document.addEventListener("click", ev => {
+  const likeBtn = ev.target.closest("[data-like]");
+  if (likeBtn) { ev.stopPropagation(); toggleLike(likeBtn.dataset.like, likeBtn); return; }
+  const nav = ev.target.closest(".nav-item");
+  if (nav) {
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    nav.classList.add("active");
+    state.plat = nav.dataset.plat;
+    document.querySelectorAll("#platSeg button").forEach(b => b.classList.toggle("active", b.dataset.plat === state.plat));
+    renderAll(); return;
+  }
+  const chip = ev.target.closest(".chip[data-gen]");
+  if (chip) { state.gen = chip.dataset.gen; renderAll(); return; }
+  const sChip = ev.target.closest(".chip[data-sort]");
+  if (sChip) { state.sort = sChip.dataset.sort; $("#sortSel").value = state.sort; renderAll(); return; }
+  const seg = ev.target.closest("#platSeg button");
+  if (seg) {
+    document.querySelectorAll("#platSeg button").forEach(b => b.classList.remove("active"));
+    seg.classList.add("active");
+    state.plat = seg.dataset.plat;
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.plat === state.plat));
+    renderAll(); return;
+  }
+  const card = ev.target.closest(".card");
+  if (card) { openDetail(card.dataset.id); return; }
+});
+$("#sortSel").addEventListener("change", e => { state.sort = e.target.value; renderAll(); });
+$("#q").addEventListener("input", e => { state.q = e.target.value.trim(); renderAll(); });
+$("#syncBtn").addEventListener("click", async () => {
+  const b = $("#syncBtn");
+  b.classList.add("loading"); $("#syncLabel").textContent = "同步中…";
+  await loadAll(true);
+  b.classList.remove("loading"); $("#syncLabel").textContent = "同步最新";
+  toast("已同步最新数据，共 " + listings.length + " 台");
+});
+$("#sheetClose").addEventListener("click", closeDetail);
+$("#scrim").addEventListener("click", closeDetail);
+$("#sheetLike").addEventListener("click", () => cur && toggleLike(cur.id));
+$("#viewerClose").addEventListener("click", closeViewer);
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeViewer(); closeDetail(); } });
+initSlideDel();
+/* 查看器手势：双击缩放、左右滑换图、下滑关闭 */
+(function () {
+  const img = $("#viewerImg"), viewer = $("#viewer");
+  let lastTap = 0, panning = null, startX = 0, startY = 0, tx = 0, ty = 0;
+  img.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - lastTap < 300) { vScale = vScale === 1 ? 2.2 : 1; tx = ty = 0; img.style.transform = vScale === 1 ? "" : `scale(${vScale})`; }
+    lastTap = now;
+  });
+  img.addEventListener("pointerdown", e => { panning = { x: e.clientX, y: e.clientY, tx, ty }; img.setPointerCapture(e.pointerId); });
+  img.addEventListener("pointermove", e => {
+    if (!panning) return;
+    const dx = e.clientX - panning.x, dy = e.clientY - panning.y;
+    if (vScale > 1) { tx = panning.tx + dx; ty = panning.ty + dy; img.style.transform = `scale(${vScale}) translate(${tx / vScale}px,${ty / vScale}px)`; }
+    else if (dy > 60) { img.style.transform = `translateY(${dy}px)`; img.style.opacity = Math.max(.3, 1 - dy / 300); }
+  });
+  img.addEventListener("pointerup", e => {
+    if (!panning) return;
+    const dx = e.clientX - panning.x, dy = e.clientY - panning.y;
+    if (vScale === 1 && dy > 90) { closeViewer(); }
+    else if (vScale === 1 && Math.abs(dx) > 60) {
+      const n = (curIdx + (dx < 0 ? 1 : -1) + curImgs.length) % curImgs.length;
+      openViewer(n);
+    }
+    img.style.transform = vScale === 1 ? "" : `scale(${vScale}) translate(${tx / vScale}px,${ty / vScale}px)`;
+    img.style.opacity = "";
+    panning = null;
+  });
+})();
+loadAll(false);
+</script>
+</body>
+</html>
