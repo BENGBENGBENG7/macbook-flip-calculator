@@ -99,7 +99,7 @@
  {
   "id": "carousell-1474280517",
   "platform": "carousell",
-  "description": "14寸 M4 Max 36GB · S$3,499 · Like new，9.5/10。描述原文：Model: 14-inch MacBook Pro (M4 Max chip)，Memory: 36GB RAM，32核GPU，Space Black，Battery Health: 99% (minimal usage)，Condition: Flawless, runs perfectly with no issues，no dent no scratch；仅带机器+第三方118W充电器，无盒。存储未在描述或可见照片中注明（关键缺口：若为512GB则价格偏高，若为1TB则低于同配置挂牌S$3,600）。循环次数未注明。卖家crownear（5.0分、59评价、8年），Bangkit LRT附近。发布约2026-11-16 14:56。基准：同为14寸 M4 Max 36/1TB的已知挂牌 S$3,600（1470926520，134循环/97%）；无已确认成交价。",
+  "description": "【2026-11-19 降价】S$3,499 → S$3,450（降 S$49，约 ¥253）。14寸 M4 Max 36GB · S$3,450 · Like new，9.5/10。描述原文：Model: 14-inch MacBook Pro (M4 Max chip)，Memory: 36GB RAM，32核GPU，Space Black，Battery Health: 99% (minimal usage)，Condition: Flawless, runs perfectly with no issues，no dent no scratch；仅带机器+第三方118W充电器，无盒。存储未在描述或可见照片中注明（关键缺口：若为512GB则价格偏高，若为1TB则低于同配置挂牌S$3,600）。循环次数未注明。卖家crownear（5.0分、59评价、8年），Bangkit LRT附近。发布约2026-11-16 14:56。基准：同为14寸 M4 Max 36/1TB的已知挂牌 S$3,600（1470926520，134循环/97%）；无已确认成交价。",
   "url": "https://www.carousell.sg/p/apple-macbook-pro-14-inch-m4-max-36gb-ram-1474280517/",
   "image": "https://media.karousell.com/media/photos/products/2026/11/16/apple_macbook_pro_14inch_m4_ma_1794812214_e2d38e28_progressive.jpg",
   "images": [
@@ -110,7 +110,7 @@
    "https://media.karousell.com/media/photos/products/2026/11/16/apple_macbook_pro_14inch_m4_ma_1794812214_d3560795_progressive.jpg"
   ],
   "seller": "crownear（5.0，59评价）",
-  "priceCny": 17871,
+  "priceCny": 17840,
   "size": "14英寸",
   "chip": "M4 Max",
   "memory": "36GB",
@@ -584,33 +584,6 @@
   "image": ""
  },
  {
-  "id": "xianyu-1099391974510",
-  "platform": "xianyu",
-  "description": "【2026-11-19 降价】¥12,000 → ¥11,980（降 ¥20）。14寸 M4 Pro 24GB/1TB · ¥11,980活动价（约S$2,313；到手约¥12,184≈S$2,352）· 纳米屏，几乎全新。标题未记录。描述：电池健康度97%，循环次数未注明，箱说全；保修未注明。卖家厨房心急火燎的藕片（太原，卖出28件，个人）。照片：查看器张数未记录，本轮未能取得原图URL，0张，待下轮重抓。基准：14寸M4 Pro 24/1TB已成交S$2,599（1笔，gwmobile.sg）；区间S$2,500–2,650；到手约S$2,352，低于区间约S$148–298。",
-  "url": "https://www.goofish.com/item?id=1099391974510",
-  "seller": "厨房心急火燎的藕片（太原，28售出，个人）",
-  "priceCny": 11980,
-  "size": "14英寸",
-  "chip": "M4 Pro",
-  "memory": "24GB",
-  "storage": "1TB",
-  "battery": "97%",
-  "cycles": 0,
-  "condition": "几乎全新",
-  "warranty": "未注明",
-  "saleLow": 2500,
-  "saleHigh": 2650,
-  "soldSource": "已成交 S$2,599（1笔，约5个月前，gwmobile.sg）",
-  "shippingSgd": 0,
-  "repairSgd": 0,
-  "feePercent": 0,
-  "targetProfit": 150,
-  "sampleCount": 1,
-  "createdAt": 1794973309025,
-  "images": [],
-  "image": ""
- },
- {
   "id": "xianyu-1053490245930",
   "platform": "xianyu",
   "description": "16寸 M4 Pro 24GB/512GB · ¥12,000仅自提（约S$2,317；到手约¥12,204≈S$2,356）· 几乎全新。标题未记录。描述：电池健康度/循环次数、盒子/充电器、保修未注明；仅青岛自提。第二张照片疑似苹果官翻商店页面截图，请注意核实。卖家面包超人爱牛奶（青岛，卖出61件，个人）。照片：查看器张数未记录，本轮未能取得原图URL，0张，待下轮重抓。基准：16寸M4 Pro 24/512已成交S$2,499（1笔，gwmobile.sg，Like new）；区间S$2,500–2,800；到手约S$2,356，低于区间约S$144–444。注意：仅自提，需另计代取/转运成本。",
@@ -838,5 +811,36 @@
   "targetProfit": 50,
   "sampleCount": 3,
   "createdAt": 1795070585785
+ },
+ {
+  "id": "carousell-1474874962",
+  "platform": "carousell",
+  "description": "【尺寸未注明】M4 Pro 24GB/512GB · S$2,200（约 ¥11,376）· Like new。描述原文：M4 Pro chip, 24GB RAM version. 512GB storage. Purchased Nov 2024. Full set with box and charger. 92% battery. Selling due to upgrade to M5 Pro OLED version。尺寸未在标题、描述或照片中注明（M4 Pro 24/512 多为 14 寸，暂按 14 寸记，需向卖家确认；若为 16 寸，转卖区间为 S$2,500–2,800）。循环次数/保修未注明。面交 Guthrie House。无 Buyer Protection。卖家 allyourbase（5.0，254评价，12年4个月；主页以 LEGO/玩具为主，个人卖家，无 Professional 徽章）。基准：14寸 M4 Pro 24/512 个人转卖约 S$2,100–2,220（用户 2026-11-18 核实，无已确认成交价）；最佳情况 +S$20（若为 16 寸则 +S$600）。照片 3 张，2026-11-19 新拍。",
+  "url": "https://www.carousell.sg/p/apple-macbook-pro-m4-1474874962/",
+  "image": "https://media.karousell.com/media/photos/products/2026/11/19/apple_macbook_pro_m4_1795095513_3d4b8669_progressive.jpg",
+  "images": [
+   "https://media.karousell.com/media/photos/products/2026/11/19/apple_macbook_pro_m4_1795095513_3d4b8669_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/19/apple_macbook_pro_m4_1795095513_29eb6591_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/19/apple_macbook_pro_m4_1795095513_ce097236_progressive.jpg"
+  ],
+  "seller": "allyourbase（5.0，254评价，12年）",
+  "priceCny": 11376,
+  "size": "14英寸",
+  "chip": "M4 Pro",
+  "memory": "24GB",
+  "storage": "512GB",
+  "battery": "92%",
+  "cycles": 0,
+  "condition": "几乎全新",
+  "warranty": "未注明",
+  "saleLow": 2100,
+  "saleHigh": 2220,
+  "soldSource": "无已确认成交价；用户 2026-11-18：14寸 M4 Pro 24/512 个人卖家实际转卖约 ¥11,500（约 S$2,220）。尺寸未注明，暂按 14 寸；若为 16 寸，区间为 S$2,500–2,800（已成交 S$2,499，1笔，gwmobile.sg）",
+  "shippingSgd": 0,
+  "repairSgd": 0,
+  "feePercent": 0,
+  "targetProfit": 150,
+  "sampleCount": 0,
+  "createdAt": 1795097334413
  }
 ]
