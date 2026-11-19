@@ -78,6 +78,7 @@ body[data-theme="nail"] .brand-mark{border-radius:50%}
 .hero--split .arch{border-radius:999px 999px 24px 24px;overflow:hidden;aspect-ratio:4/5;box-shadow:var(--shadow-lg)}
 .hero--split .arch img{width:100%;height:100%;object-fit:cover}
 .hero--split .btn-ghost{border-color:var(--line);color:var(--ink)}
+.hero--center .btn-ghost{border-color:var(--line);color:var(--ink)}
 
 /* ---------- hero: nail (centered, image below) ---------- */
 .hero--center{background:var(--paper);padding:64px 0 40px;text-align:center}
@@ -655,6 +656,9 @@ function renderTimes() {
 }
 
 /* ================= basket ================= */
+function persist() {
+  try { localStorage.setItem("soonsoon-v3:baskets", JSON.stringify(baskets)); localStorage.setItem("soonsoon-v3:tickets", JSON.stringify(tickets)); } catch (e) {}
+}
 function toast(msg, undo) {
   const t = $("#toast");
   t.innerHTML = esc(msg) + (undo ? `<button id="toastUndo">Undo</button>` : "");
@@ -662,7 +666,7 @@ function toast(msg, undo) {
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove("show"), 3200);
   if (undo) $("#toastUndo").addEventListener("click", () => {
-    if (lastRemoved) { basket[lastRemoved.id] = (basket[lastRemoved.id] || 0) + lastRemoved.qty; lastRemoved = null; updateBasketUI(); renderShop(); }
+    if (lastRemoved) { basket[lastRemoved.id] = (basket[lastRemoved.id] || 0) + lastRemoved.qty; lastRemoved = null; baskets[shopId] = basket; persist(); updateBasketUI(); renderShop(); }
     t.classList.remove("show");
   });
 }
@@ -678,6 +682,7 @@ function flyToBasket(fromEl) {
 }
 function addToBasket(id, el) {
   basket[id] = (basket[id] || 0) + 1;
+  baskets[shopId] = basket; persist();
   if (el) flyToBasket(el);
   updateBasketUI(); renderShop();
   toast(itemById(id).name + " added.");
@@ -687,6 +692,7 @@ function removeFromBasket(id, qty = 1) {
   lastRemoved = { id, qty: Math.min(qty, basket[id]) };
   basket[id] -= qty;
   if (basket[id] <= 0) delete basket[id];
+  baskets[shopId] = basket; persist();
   updateBasketUI(); renderShop(); renderDrawer();
   toast(itemById(id).name + " removed.", true);
 }
@@ -734,7 +740,7 @@ document.addEventListener("click", e => {
   const sw = e.target.closest("#switchBtns button");
   if (sw) {
     if (sw.dataset.shop === shopId) return;
-    baskets[shopId] = basket; tickets[shopId] = $("#ticket").innerHTML;
+    baskets[shopId] = basket; tickets[shopId] = $("#ticket").innerHTML; persist();
     shopId = sw.dataset.shop; basket = baskets[shopId] || {}; lastRemoved = null;
     renderShop(); window.scrollTo({ top: 0, behavior: "smooth" });
     toast("Now showing " + shop().full + " — layout, colours and selling style switched too. Each shop keeps its own basket.");
@@ -755,7 +761,7 @@ document.addEventListener("submit", e => {
     <div class="t-big">${esc(name)}</div>
     <div class="t-meta">${esc(dateTxt)}<br>${esc(time)} · ${esc(detail)}<br>${esc(s.full)} · ${esc(s.address)}</div>
     <div class="t-note">We hold it for 15 minutes. Running late? WhatsApp ${WA_DISPLAY} and we will keep it.</div>`;
-  tickets[shopId] = $("#ticket").innerHTML;
+  tickets[shopId] = $("#ticket").innerHTML; persist();
   $("#ticket").scrollIntoView({ behavior: "smooth", block: "center" });
   toast("Booked — see you then, " + name.split(" ")[0] + "!");
 });
@@ -789,6 +795,8 @@ $("#feedback").addEventListener("click", e => {
 /* ================= reveal ================= */
 const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } }), { threshold: .12 });
 
+try { Object.assign(baskets, JSON.parse(localStorage.getItem("soonsoon-v3:baskets") || "{}")); Object.assign(tickets, JSON.parse(localStorage.getItem("soonsoon-v3:tickets") || "{}")); } catch (e) {}
+basket = baskets[shopId] || {};
 renderShop();
 </script>
 </body>
