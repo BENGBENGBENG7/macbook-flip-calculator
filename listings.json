@@ -2,7 +2,7 @@
  {
   "id": "carousell-1473491289",
   "platform": "carousell",
-  "description": "16寸 M3 Pro 18GB/512GB · S$2,100（约¥10,878）· 深空黑，Like new。卖家 qwertyjwjw / Thaddeus（4.9，27条评价，8年），面交 East Coast Road / NTU North Hill Food Court。描述：\"Perfect, extremely underutilised\"，\"Slightly negotiable\"（可小刀）。电池健康度 100%（标题及描述均写 100%）；循环次数页面未显示（描述与第4张关于本机截图均无循环数，早前记录的37次未获本轮证实，不作确认）。保修已过期（照片显示 Coverage Expired）。盒子/充电器未注明。基准：同配置 16寸 M3 Pro 18/512 现实卖价约 S$1,900–2,100（同配置另一台 90%/180次在售 S$2,300，本机电池更好）；挂牌价 S$2,100 在区间顶端，砍价至约 S$2,000 才有空间。",
+  "description": "【2026-11-20 降价】S$2,100 → S$1,980（降 S$120，约 ¥621）。16寸 M3 Pro 18GB/512GB · S$1,980（约¥10,248）· 深空黑，Like new。卖家 qwertyjwjw / Thaddeus（4.9，27条评价，8年），面交 East Coast Road / NTU North Hill Food Court。描述：\"Perfect, extremely underutilised\"，\"Slightly negotiable\"（可小刀）。电池健康度 100%（标题及描述均写 100%）；循环次数页面未显示（描述与第4张关于本机截图均无循环数，早前记录的37次未获本轮证实，不作确认）。保修已过期（照片显示 Coverage Expired）。盒子/充电器未注明。基准：同配置 16寸 M3 Pro 18/512 现实卖价约 S$1,900–2,100（同配置另一台 90%/180次在售 S$2,300，本机电池更好）；挂牌价 S$1,980 已在区间内，最好情况约 +S$120。",
   "url": "https://www.carousell.sg/p/macbook-pro-16-inch-m3-pro-100-battery-18gb-512gb-1473491289/",
   "image": "https://media.karousell.com/media/photos/products/2026/11/12/macbook_pro_16inch_m3_pro_100__1794470738_5c7a341e_progressive.jpg",
   "images": [
@@ -12,7 +12,7 @@
    "https://media.karousell.com/media/photos/products/2026/11/11/apple_macbook_pro_16inch_m3_pr_1794409843_819c909b_progressive.jpg"
   ],
   "seller": "qwertyjwjw / Thaddeus",
-  "priceCny": 10878,
+  "priceCny": 10248,
   "size": "16英寸",
   "chip": "M3 Pro",
   "memory": "18GB",
@@ -27,7 +27,7 @@
   "shippingSgd": 0,
   "repairSgd": 0,
   "feePercent": 0,
-  "targetProfit": 0,
+  "targetProfit": 120,
   "sampleCount": 0,
   "createdAt": 1794802198000
  },
@@ -70,7 +70,7 @@
  {
   "id": "carousell-1474280517",
   "platform": "carousell",
-  "description": "【2026-11-19 降价】S$3,499 → S$3,450（降 S$49，约 ¥253）。14寸 M4 Max 36GB · S$3,450 · Like new，9.5/10。描述原文：Model: 14-inch MacBook Pro (M4 Max chip)，Memory: 36GB RAM，32核GPU，Space Black，Battery Health: 99% (minimal usage)，Condition: Flawless, runs perfectly with no issues，no dent no scratch；仅带机器+第三方118W充电器，无盒。存储未在描述或可见照片中注明（关键缺口：若为512GB则价格偏高，若为1TB则低于同配置挂牌S$3,600）。循环次数未注明。卖家crownear（5.0分、59评价、8年），Bangkit LRT附近。发布约2026-11-16 14:56。基准：同为14寸 M4 Max 36/1TB的已知挂牌 S$3,600（1470926520，134循环/97%）；无已确认成交价。",
+  "description": "【2026-11-19 降价】S$3,499 → S$3,450（降 S$49，约 ¥253）。14寸 M4 Max 36GB · S$3,450 · Like new，9.5/10。描述原文：Model: 14-inch MacBook Pro (M4 Max chip)，Memory: 36GB RAM，32核GPU，Space Black，Battery Health: 99% (minimal usage)，Condition: Flawless, runs perfectly with no issues，no dent no scratch；仅带机器+第三方118W充电器，无盒。存储已确认为1TB（描述明确 \"Model: 14\\\" M4 Max, 36GB, 1TB, Space Black\"）。循环次数未注明。卖家crownear（5.0分、59评价、8年），Bangkit LRT附近。发布约2026-11-16 14:56。基准：同为14寸 M4 Max 36/1TB的已知挂牌 S$3,600（1470926520，134循环/97%）；无已确认成交价。",
   "url": "https://www.carousell.sg/p/apple-macbook-pro-14-inch-m4-max-36gb-ram-1474280517/",
   "image": "https://media.karousell.com/media/photos/products/2026/11/16/apple_macbook_pro_14inch_m4_ma_1794812214_e2d38e28_progressive.jpg",
   "images": [
@@ -133,41 +133,6 @@
   "targetProfit": 50,
   "sampleCount": 2,
   "createdAt": 1794823256278
- },
- {
-  "id": "carousell-1474078375",
-  "platform": "carousell",
-  "description": "14寸 M3 Pro 18GB/512GB · S$1,150（约¥5,957）· 深空灰，Lightly used。描述：“Model: MacBook Pro 14-inch / Processor: M3 Pro chip / Memory: 18GB RAM / Storage: 512GB SSD / Battery Health: 89% / Condition: Screen and keyboard are flawless; exterior shows light signs of daily use / Performance: Excellent for heavy multitasking and creative projects / Deal: PM for inquiries or to arrange a meetup”。电池89%，循环次数未注明；屏幕与键盘完好；外壳磨损比描述写的重：顶盖 Apple 标志数道竖向划痕，底壳前角氧化层磨掉露银白、带小磕痕，底板轻微划痕（用户 2026-11-17 指出，7 张照片放大核实）；无凹痕裂纹，仅外观问题。盒/充电器/保修未注明。卖家 Isma Deal U（@isma_dealu21，5.0，9评价，13年），面交 Admiralty MRT Station (NS10)。基准：同配置已成交 S$1,599 / S$1,758（2 笔）；现价 S$1,150 比已成交价低约 S$450–600；但因外观磨损，本机现实可卖价约 S$1,400–1,550（估计），仍留约 S$250–400 空间。面交时须在光线好的地方检查四角/边缘并用手摸确认仅为外观问题。",
-  "url": "https://www.carousell.sg/p/apple-macbook-pro-14-inch-m3-pro-18gb-ram-1474078375/",
-  "image": "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_fccb334b_progressive.jpg",
-  "images": [
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_fccb334b_progressive.jpg",
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_faedbfac_progressive.jpg",
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_3bdd0cc0_progressive.jpg",
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_4e4a756d_progressive.jpg",
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_b3faf085_progressive.jpg",
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_02af2aa0_progressive.jpg",
-   "https://media.karousell.com/media/photos/products/2026/11/15/apple_macbook_pro_14inch_m3_pr_1794718615_b4170cd4_progressive.jpg"
-  ],
-  "seller": "Isma Deal U（@isma_dealu21，5.0，9评价）",
-  "priceCny": 5957,
-  "size": "14英寸",
-  "chip": "M3 Pro",
-  "memory": "18GB",
-  "storage": "512GB",
-  "battery": "89%",
-  "cycles": "未注明",
-  "condition": "轻度使用；外壳有明显磨损：顶盖 Apple 标志数道竖向划痕，底壳前角深空灰阳极氧化磨掉露银白、带小磕痕，底板轻微划痕；无凹痕、无裂纹，屏幕/键盘/掌托干净——仅外观问题",
-  "warranty": "未注明",
-  "saleLow": 1400,
-  "saleHigh": 1550,
-  "soldSource": "同配置新加坡已成交 S$1,599 / S$1,758 / S$1,600（3 笔，商家，售出時掛牌價）；但本机外观有磨损（顶盖标志划痕、底角氧化层磨穿露银），不能按近新机卖，现实可卖价约 S$1,400–1,550（估计，无磨损机成交价佐证），S$1,150 买入约留 S$250–400 空间",
-  "shippingSgd": 0,
-  "repairSgd": 0,
-  "feePercent": 0,
-  "targetProfit": 50,
-  "sampleCount": 3,
-  "createdAt": 1794843387518
  },
  {
   "id": "carousell-1473373415",
@@ -550,5 +515,64 @@
   "targetProfit": 150,
   "sampleCount": 2,
   "createdAt": 1795176525894
+ },
+ {
+  "id": "carousell-1472835721",
+  "platform": "carousell",
+  "description": "【2026-11-20 新上架（约1周前发布，本轮首次核实）】14寸 M3 Pro 18GB/1TB · S$1,980（约¥10,248，按 5.1757 估计）· 深空黑，2023款，Like new。描述原文：\"Perfect condition in every way - no scratches, dents, or damage in any form.\" 电池99%/26循环。原盒+原装充电器。描述称保修至2026年11月3日（按该日期，至本轮时已过期）。新加坡购买，轻度使用，因换 M4 Pro 出售。卖家 bromptont（5.0，29评价，10年5个月），面交 Farrer Road MRT。主页已核查为个人（单车、家居等杂项）。照片 1/1（该帖仅 1 张）。基准：无已确认成交价；同配置 14寸 M3 Pro 18/1TB 现实卖价估算约 S$1,800–2,100；S$1,980 在区间内，最好情况约 +S$120。",
+  "url": "https://www.carousell.sg/p/apple-macbook-pro-14%E2%80%9D-m3-pro-18gb-ram-1tb-ssd-space-black-1472835721/",
+  "image": "https://media.karousell.com/media/photos/products/2026/11/7/apple_macbook_pro_14_m3_pro__1794311929_9b5fe2e7_progressive.jpg",
+  "images": [
+   "https://media.karousell.com/media/photos/products/2026/11/7/apple_macbook_pro_14_m3_pro__1794311929_9b5fe2e7_progressive.jpg"
+  ],
+  "seller": "bromptont（5.0，29评价，10年5个月；个人卖家）",
+  "priceCny": 10248,
+  "size": "14英寸",
+  "chip": "M3 Pro",
+  "memory": "18GB",
+  "storage": "1TB",
+  "battery": "99%",
+  "cycles": 26,
+  "condition": "几乎全新",
+  "warranty": "已过期（描述称至2026-11-03）",
+  "saleLow": 1800,
+  "saleHigh": 2100,
+  "soldSource": "无已确认成交价；14寸M3 Pro 18/1TB现实卖价估算约S$1,800–2,100",
+  "shippingSgd": 0,
+  "repairSgd": 0,
+  "feePercent": 0,
+  "targetProfit": 120,
+  "sampleCount": 0,
+  "createdAt": 1795190595152
+ },
+ {
+  "id": "carousell-1437116236",
+  "platform": "carousell",
+  "description": "【2026-11-20 新上架（旧帖，2026年5月发布，本轮首次核实）】M6 Pro 24GB/1TB · S$2,600（约¥13,457，按 5.1757 估计）· 深空灰，全新（Brand new）。描述原文：\"BRAND NEW!!!\" / M6 Pro Chip With 16-Core CPU and 16-Core GPU / 24 GB, 1 TB SSD。⚠️注意：尺寸未注明（14寸或16寸均未写）；仅 2 张照片，描述为通用文案，无电池/保修/盒子说明；该帖为 2026 年 5 月旧帖，至今未售出——面交时务必核对尺寸、序列号与激活状态。卖家 fxrhxnn / Adib Farhan（5.0，7评价，8年3个月），面交 Woodlands Waterfront。主页已核查为个人（摩托车零件、家居等杂项）。照片 2/2。基准：无已确认成交价；最接近配置 14寸 M5 Pro 24/1TB 已成交约 S$2,800–2,950；M6 Pro 为更新一代，14寸估算约 S$3,000–3,300（16寸更高），最好情况约 +S$400–700。",
+  "url": "https://www.carousell.sg/p/apple-macbook-pro-space-gray-1437116236/",
+  "image": "https://media.karousell.com/media/photos/products/2026/5/10/apple_macbook_pro__space_gray_1778406194_141a65c5_progressive.jpg",
+  "images": [
+   "https://media.karousell.com/media/photos/products/2026/5/10/apple_macbook_pro__space_gray_1778406194_141a65c5_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/5/10/apple_macbook_pro__space_gray_1778406194_af1d8ffb_progressive.jpg"
+  ],
+  "seller": "fxrhxnn / Adib Farhan（5.0，7评价，8年3个月；个人卖家）",
+  "priceCny": 13457,
+  "size": "未注明",
+  "chip": "M6 Pro",
+  "memory": "24GB",
+  "storage": "1TB",
+  "battery": "",
+  "cycles": 0,
+  "condition": "全新（Brand new）",
+  "warranty": "未注明",
+  "saleLow": 2900,
+  "saleHigh": 3300,
+  "soldSource": "无已确认成交价；最接近配置 14寸 M5 Pro 24/1TB 已成交约 S$2,800–2,950；M6 Pro 为更新一代，尺寸未注明，14寸估算约 S$3,000–3,300（16寸更高）",
+  "shippingSgd": 0,
+  "repairSgd": 0,
+  "feePercent": 0,
+  "targetProfit": 150,
+  "sampleCount": 0,
+  "createdAt": 1795190595152
  }
 ]
