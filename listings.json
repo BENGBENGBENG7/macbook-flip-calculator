@@ -1707,5 +1707,37 @@
   "feePercent": 0,
   "targetProfit": 200,
   "createdAt": 1795745904606
+ },
+ {
+  "id": "carousell-1476156996",
+  "platform": "carousell",
+  "description": "15寸 Air M4 16GB/256GB · S$1,300（约¥6,721，按 5.17 估计）· 星光色，Lightly used 9/10，无磕碰无划痕。描述原文：\"Hey all! Selling my Macbook Air M4 15\" as I don't use it much. - Lightly used - Battery Health: 100% - Comes with wire and box - No dent, no scratches - Condition: 9/10 Reason for selling: Barely using it, upgrading to a new one\"。电池100%（循环次数未注明）；有盒子+充电线；保修未注明；面交 Lakeside MRT Station (EW26)。卖家 kokeshiheart（5.0，11评价，14单，7年，已验证；个人卖家，主页多为 Jellycat 毛绒玩具与偶像小卡，仅此一台 MacBook 及一台旧 iPhone XS Max，无 Professional Seller 徽章）。约 2026-11-27 10:51 上架。照片 4/4（已 curl 验证全部 200；⚠️4 张均为官方/产品图，无实机照片、无电池截图——面交时务必开机验机核对成色与配置）。基准：同配置已成交 S$1,399 ×2（super_it 1462329424/1462327916，Like new）/ S$1,188（usefulthings 1464278675，Lightly used，2026-11-25 核实）；个人现实卖价约 S$1,188–1,399；挂牌价 S$1,300 在区间内，最好情况约 +S$99。",
+  "url": "https://www.carousell.sg/p/macbook-air-m4-15%E2%80%9D3-16gb-256gb-2025-starlight-1476156996/",
+  "image": "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_m4_153_16gb_256gb__1795746034_fdf428a1_progressive.jpg",
+  "images": [
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_m4_153_16gb_256gb__1795746034_fdf428a1_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_m4_153_16gb_256gb__1795746034_22ed6443_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_m4_153_16gb_256gb__1795746034_81f1ff76_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_m4_153_16gb_256gb__1795746034_7712fc20_progressive.jpg"
+  ],
+  "seller": "kokeshiheart（5.0，11评价，14单，7年，已验证；个人卖家）",
+  "priceCny": 6721,
+  "size": "15英寸",
+  "chip": "M4",
+  "memory": "16GB",
+  "storage": "256GB",
+  "battery": "100%",
+  "cycles": 0,
+  "condition": "轻度使用，9/10，无磕碰无划痕（照片均为官方图，无实机照片）",
+  "warranty": "未注明",
+  "saleLow": 1188,
+  "saleHigh": 1399,
+  "soldSource": "已成交 S$1,399 ×2（super_it 1462329424/1462327916，Like new）/ S$1,188（usefulthings 1464278675，Lightly used，2026-11-25 核实）",
+  "shippingSgd": 0,
+  "repairSgd": 0,
+  "feePercent": 0,
+  "targetProfit": 99,
+  "sampleCount": 3,
+  "createdAt": 1795752728673
  }
 ]
