@@ -1867,5 +1867,35 @@
   "targetProfit": 150,
   "sampleCount": 8,
   "createdAt": 1795767499923
+ },
+ {
+  "id": "carousell-1476192604",
+  "platform": "carousell",
+  "description": "【2026-11-27 第160轮 新上架（WATCH转入选）】13寸 Air M3 16GB/256GB · S$1,050（约¥5,439，按 5.18 估计）· 午夜色，Like new。价格历史：S$1,200（第159轮首次见，配置未确认）→ S$1,150（第160轮 ~17:43，配置确认）→ S$1,050（第160轮 ~18:13，半小时内再降 S$100）。描述原文：\"- Model: Apple MacBook Air M3 13\\\" / - Storage: 256GB / - Ram: 16GB / - Color: Midnight / - Condition: Excellent, well-maintained screen and keyboard / - Battery Health: 100% (Maximum capacity) / - Performance: Fast, fully functional, no issues / - Included: Charging cable / - Perfect for: Students and professionals looking for a reliable, portable laptop / Open to negotiate if you are truly interested !\" 电池100%（照片2电池页一致，循环次数未注明）；仅充电线，无盒，保修未提；可议价（Make Offer）。卖家 Hollow Shox @wowzinga（4.9，21评价，11年；个人卖家，主页仅本机+一只 Diesel 手表）。面交 Bishan MRT Drop Off/Pick Up Point。照片 2/2（帖子现仅2张；第159轮首轮提取的3条链接全部404，卖家编辑/降价时移除了1张；本轮放大查看器重提，curl 验证全部 200）。⚠️描述未写无划痕/无磕碰，仅写 Excellent + Like new 标签；无 About This Mac 照片，配置以描述文字为准。基准：同配置无已确认成交价；最接近 Air M3 8/256 商家实价 S$959（gwmobile.sg）＋16GB 溢价，推算个人现实卖价约 S$950–1,100；挂牌价 S$1,050 在区间内，最好情况约 +S$50。",
+  "url": "https://www.carousell.sg/p/apple-macbook-air-m3-13%E2%80%9D-1476192604/",
+  "image": "https://media.karousell.com/media/photos/products/2026/11/27/apple_macbook_air_m3_13_1795760574_4a1bdbba_progressive.jpg",
+  "images": [
+   "https://media.karousell.com/media/photos/products/2026/11/27/apple_macbook_air_m3_13_1795760574_4a1bdbba_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/apple_macbook_air_m3_13_1795760574_958b8be5_progressive.jpg"
+  ],
+  "seller": "Hollow Shox @wowzinga（4.9，21评价，11年；个人卖家）",
+  "priceCny": 5439,
+  "size": "13英寸",
+  "chip": "M3",
+  "memory": "16GB",
+  "storage": "256GB",
+  "battery": "100%",
+  "cycles": 0,
+  "condition": "Like new，Excellent，屏幕键盘保养良好（未写无划痕/无磕碰）",
+  "warranty": "未注明",
+  "saleLow": 950,
+  "saleHigh": 1100,
+  "soldSource": "无已确认成交价；最接近 Air M3 8/256 商家实价 S$959（gwmobile.sg）＋16GB 溢价，推算个人现实卖价约 S$950–1,100",
+  "shippingSgd": 0,
+  "repairSgd": 0,
+  "feePercent": 0,
+  "targetProfit": 50,
+  "sampleCount": 0,
+  "createdAt": 1795774598894
  }
 ]
