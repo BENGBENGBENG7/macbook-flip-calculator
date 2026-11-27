@@ -1095,35 +1095,6 @@
   "createdAt": 1795558618293
  },
  {
-  "id": "carousell-1475212298",
-  "platform": "carousell",
-  "description": "【2026-11-25 第134轮 新上架】13寸 Air M5 16GB/1TB · S$1,680（约¥8,680，按 5.1667 估计，可议价）· 浅色（银/星光外观）。描述原文：\"still have apple warranty until 2027 / 100% battery at 22 cycles / 10 cores GPU; retails $2.300+ / great bargain due to seldom use\" 电池 100%、22 次循环；保修至 2027 年（具体日期未注明）；盒子/充电器未注明。卖家 @scoot_scoot（5.0，169 条评价，9 年），面交 Senja；主页已核查为个人（仅此 1 条在售，其余为已售玩具、手表、太阳镜等个人物品，无 Professional 徽章）。约 3 天前上架（第 134 轮后续追查发现），15 个 like。照片 1/1（卖家仅上传 1 张，已 curl 验证 206）。基准：该配置无已确认成交价；最接近 15\" 16/1TB 已成交 S$2,099（super_it，1 笔）、商家实价 13\" 16/1TB S$1,999（gwmobile.sg）；推算个人现实卖价约 S$1,800–2,000，挂牌价 S$1,680 低于区间，最好情况约 +S$320。注意：盒子/充电器未注明、仅 1 张照片——面交务必验机。",
-  "url": "https://www.carousell.sg/p/macbook-air-m5-16gb-1t-13in-1475212298/",
-  "image": "https://media.karousell.com/media/photos/products/2026/11/21/macbook_air_m5_16gb_1t_13in_1795266883_f09ef852_progressive.jpg",
-  "images": [
-   "https://media.karousell.com/media/photos/products/2026/11/21/macbook_air_m5_16gb_1t_13in_1795266883_f09ef852_progressive.jpg"
-  ],
-  "seller": "@scoot_scoot（5.0，169评价，9年；个人卖家）",
-  "priceCny": 8680,
-  "size": "13英寸",
-  "chip": "M5",
-  "memory": "16GB",
-  "storage": "1TB",
-  "battery": "100%",
-  "cycles": 22,
-  "condition": "Like new，少用",
-  "warranty": "Apple 保修至 2027 年（具体日期未注明）",
-  "saleLow": 1699,
-  "saleHigh": 2000,
-  "soldSource": "已成交 S$1,699（gwmobile.sg 1470723366，商家售出，售出时挂牌价，2026-11-25 核实，店内搜寻所见未逐页打开）/ 15\" Air M5 16/1TB 已成交 S$2,099（super_it，1 笔）；商家实价 13\" 16/1TB S$1,999（gwmobile.sg 在售）",
-  "shippingSgd": 0,
-  "repairSgd": 0,
-  "feePercent": 0,
-  "targetProfit": 320,
-  "sampleCount": 1,
-  "createdAt": 1795558618293
- },
- {
   "id": "carousell-1474953350",
   "platform": "carousell",
   "description": "2026-11-27 第152轮 基准更新：同配置新增已确认成交 S$1,450（super_it 1430717129，Brand new，保修至2027-03，2026-11-27 核实尺寸为13寸——此前尺寸待确认）/ S$1,495（smartselects 1472507875，Like new，电池100%，AppleCare+ 至2027-03，2026-11-27 核实售出）；区间 S$1,299–1,750 不变，sampleCount 6 → 8；最好情况不变。\n【2026-11-26 第145轮 基准更新】同配置新增已确认成交 S$1,299（gwmobile.sg，约2026年6月上架）/ S$1,595（smartselects，约2026年8月上架）/ S$1,599（gwmobile.sg，约2026年8月上架）；区间 S$1,478–1,750 → S$1,299–1,750，sampleCount 2 → 5；最好情况不变（saleHigh 仍 S$1,750）。\n【2026-11-25 第134轮 新上架】13寸 Air M5 16GB/512GB · S$1,742（约¥9,000，按 5.1667 估计，可议价）· 午夜色，Like new。描述原文：\"AppleCare+ coverage until 16 July 2029 / Apple M5 chip / 16GB Ram / 512GB SSD / 100% maximum battery capacity / Battery condition: 100%\" 电池 100%（循环次数未注明）；AppleCare+ 至 2029-07-16；盒子/充电器未注明；无面交，仅卖家自定快递 S$20（当日送达，可追踪）。卖家 @theyellowfruit（5.0，22 条评价，3 年多），主页已核查为个人（附带小批量同款警告：主页共 3 条 Air M5——天蓝 16/512 S$1,535 已在工具内、本条午夜 AppleCare+ S$1,742、1TB AppleCare+ Reserved S$2,182；其余为混合个人物品，非电脑/手机店铺，无 Professional 徽章）。约 4 天前上架（第 134 轮后续追查发现）。照片 1/1——仅 1 张产品渲染图、无实机照片（已 curl 验证 206）。基准：同配置已成交 S$1,478（mobilerelation.sg，Like new）/ S$1,750（aspy21，AppleCare+，2 笔），现实卖价约 S$1,478–1,750；挂牌价 S$1,742 在区间顶端，计入 S$20 快递费后最好情况约 −S$12（边缘通过）。注意：利润极薄、无实机照片、未注明盒子/充电器、小批量同款卖家——面交验机优先，快递须谨慎。",
@@ -1897,5 +1868,37 @@
   "targetProfit": 50,
   "sampleCount": 0,
   "createdAt": 1795774598894
+ },
+ {
+  "id": "carousell-1476230335",
+  "platform": "carousell",
+  "description": "【2026-11-27 第161轮 新上架】13寸 Air M1 8GB/256GB · S$499（约¥2,585，按 5.18 估计）· 玫瑰金（A2337）。描述原文：\"8GB RAM/ 256 SSD - Condition: Excellent, well-maintained Exterior [8/10] (a few scratches) Interior [9.5/10] (works normally like brand new) - Keyboard: Clean and responsive - Battery health: normal/healthy - Performance: Everything functions perfectly (ideal for daily tasks, school, or work) - Includes: Clear protective hard shell case (if want) Model: Apple MacBook Air (A2337) Colour: Rose gold/Gold\" 电池只写 normal/healthy，无百分比/循环次数；外观 8/10 有少许划痕，内里 9.5/10；键盘干净灵敏；可附透明硬壳；无充电器/盒/保修说明。卖家 Lili @sialili87556710（5.0，2评价，3年；个人卖家，主页仅本机+一个 S$20.90 宝可梦摆件）。面交 Parkway Parade 或大多数 MRT 站。照片 4/4（已 curl 验证全部 200）。基准：同配置已成交 S$428（usefulthings 1471291531，Heavily used，2026-11-24 核实）/ S$555（Lightly used，第 143 轮核实，未留 ID），区间 S$450–555，最好情况约 +S$56。注意：外壳有少许划痕、无充电器、电池健康度未注明——面交务必验机。",
+  "url": "https://www.carousell.sg/p/macbook-air-rose-gold-gold-model-a2337-apple-1476230335/",
+  "image": "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_rose_goldgold_mode_1795773711_f843fc40_progressive.jpg",
+  "images": [
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_rose_goldgold_mode_1795773711_f843fc40_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_rose_goldgold_mode_1795773711_b0600459_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_rose_goldgold_mode_1795773711_165a6d3e_progressive.jpg",
+   "https://media.karousell.com/media/photos/products/2026/11/27/macbook_air_rose_goldgold_mode_1795773711_79595645_progressive.jpg"
+  ],
+  "seller": "Lili @sialili87556710（5.0，2评价，3年；个人卖家）",
+  "priceCny": 2585,
+  "size": "13英寸",
+  "chip": "M1",
+  "memory": "8GB",
+  "storage": "256GB",
+  "battery": "",
+  "cycles": 0,
+  "condition": "Lightly used，Excellent；外观 8/10 有少许划痕，内里 9.5/10",
+  "warranty": "未注明",
+  "saleLow": 450,
+  "saleHigh": 555,
+  "soldSource": "已成交 S$428（usefulthings 1471291531，Heavily used，2026-11-24 核實）/ S$555（Lightly used，第 143 輪核實，未留 ID）",
+  "shippingSgd": 0,
+  "repairSgd": 0,
+  "feePercent": 0,
+  "targetProfit": 56,
+  "sampleCount": 2,
+  "createdAt": 1795781175284
  }
 ]
